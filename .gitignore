@@ -99,3 +99,14 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# PyCharm
+.idea/
+
+# save logs
+hourglass_saver
+
+# tensorflow models file
+hg_test_*.*
+YOLO_small.ckpt
+checkpoint

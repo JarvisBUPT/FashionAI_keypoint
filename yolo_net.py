@@ -6,7 +6,6 @@ slim = tf.contrib.slim
 
 
 class YOLONet(object):
-
     def __init__(self, is_training=True):
         self.classes = cfg.CLASSES
         self.num_class = len(self.classes)
@@ -32,7 +31,8 @@ class YOLONet(object):
             (self.boxes_per_cell, self.cell_size, self.cell_size)), (1, 2, 0))
 
         self.images = tf.placeholder(tf.float32, [None, self.image_size, self.image_size, 3], name='images')
-        self.logits = self.build_network(self.images, num_outputs=self.output_size, alpha=self.alpha, is_training=is_training)
+        self.logits = self.build_network(self.images, num_outputs=self.output_size, alpha=self.alpha,
+                                         is_training=is_training)
 
         if is_training:
             self.labels = tf.placeholder(tf.float32, [None, self.cell_size, self.cell_size, 5 + self.num_class])
@@ -123,9 +123,9 @@ class YOLONet(object):
 
             # calculate the boxs1 square and boxs2 square
             square1 = (boxes1[:, :, :, :, 2] - boxes1[:, :, :, :, 0]) * \
-                (boxes1[:, :, :, :, 3] - boxes1[:, :, :, :, 1])
+                      (boxes1[:, :, :, :, 3] - boxes1[:, :, :, :, 1])
             square2 = (boxes2[:, :, :, :, 2] - boxes2[:, :, :, :, 0]) * \
-                (boxes2[:, :, :, :, 3] - boxes2[:, :, :, :, 1])
+                      (boxes2[:, :, :, :, 3] - boxes2[:, :, :, :, 1])
 
             union_square = tf.maximum(square1 + square2 - inter_square, 1e-10)
 
@@ -133,9 +133,12 @@ class YOLONet(object):
 
     def loss_layer(self, predicts, labels, scope='loss_layer'):
         with tf.variable_scope(scope):
-            predict_classes = tf.reshape(predicts[:, :self.boundary1], [self.batch_size, self.cell_size, self.cell_size, self.num_class])
-            predict_scales = tf.reshape(predicts[:, self.boundary1:self.boundary2], [self.batch_size, self.cell_size, self.cell_size, self.boxes_per_cell])
-            predict_boxes = tf.reshape(predicts[:, self.boundary2:], [self.batch_size, self.cell_size, self.cell_size, self.boxes_per_cell, 4])
+            predict_classes = tf.reshape(predicts[:, :self.boundary1],
+                                         [self.batch_size, self.cell_size, self.cell_size, self.num_class])
+            predict_scales = tf.reshape(predicts[:, self.boundary1:self.boundary2],
+                                        [self.batch_size, self.cell_size, self.cell_size, self.boxes_per_cell])
+            predict_boxes = tf.reshape(predicts[:, self.boundary2:],
+                                       [self.batch_size, self.cell_size, self.cell_size, self.boxes_per_cell, 4])
 
             response = tf.reshape(labels[:, :, :, 0], [self.batch_size, self.cell_size, self.cell_size, 1])
             boxes = tf.reshape(labels[:, :, :, 1:5], [self.batch_size, self.cell_size, self.cell_size, 1, 4])
@@ -146,7 +149,8 @@ class YOLONet(object):
             offset = tf.reshape(offset, [1, self.cell_size, self.cell_size, self.boxes_per_cell])
             offset = tf.tile(offset, [self.batch_size, 1, 1, 1])
             predict_boxes_tran = tf.stack([(predict_boxes[:, :, :, :, 0] + offset) / self.cell_size,
-                                           (predict_boxes[:, :, :, :, 1] + tf.transpose(offset, (0, 2, 1, 3))) / self.cell_size,
+                                           (predict_boxes[:, :, :, :, 1] + tf.transpose(offset,
+                                                                                        (0, 2, 1, 3))) / self.cell_size,
                                            tf.square(predict_boxes[:, :, :, :, 2]),
                                            tf.square(predict_boxes[:, :, :, :, 3])])
             predict_boxes_tran = tf.transpose(predict_boxes_tran, [1, 2, 3, 4, 0])
@@ -168,20 +172,24 @@ class YOLONet(object):
 
             # class_loss
             class_delta = response * (predict_classes - classes)
-            class_loss = tf.reduce_mean(tf.reduce_sum(tf.square(class_delta), axis=[1, 2, 3]), name='class_loss') * self.class_scale
+            class_loss = tf.reduce_mean(tf.reduce_sum(tf.square(class_delta), axis=[1, 2, 3]),
+                                        name='class_loss') * self.class_scale
 
             # object_loss
             object_delta = object_mask * (predict_scales - iou_predict_truth)
-            object_loss = tf.reduce_mean(tf.reduce_sum(tf.square(object_delta), axis=[1, 2, 3]), name='object_loss') * self.object_scale
+            object_loss = tf.reduce_mean(tf.reduce_sum(tf.square(object_delta), axis=[1, 2, 3]),
+                                         name='object_loss') * self.object_scale
 
             # noobject_loss
             noobject_delta = noobject_mask * predict_scales
-            noobject_loss = tf.reduce_mean(tf.reduce_sum(tf.square(noobject_delta), axis=[1, 2, 3]), name='noobject_loss') * self.noobject_scale
+            noobject_loss = tf.reduce_mean(tf.reduce_sum(tf.square(noobject_delta), axis=[1, 2, 3]),
+                                           name='noobject_loss') * self.noobject_scale
 
             # coord_loss
             coord_mask = tf.expand_dims(object_mask, 4)
             boxes_delta = coord_mask * (predict_boxes - boxes_tran)
-            coord_loss = tf.reduce_mean(tf.reduce_sum(tf.square(boxes_delta), axis=[1, 2, 3, 4]), name='coord_loss') * self.coord_scale
+            coord_loss = tf.reduce_mean(tf.reduce_sum(tf.square(boxes_delta), axis=[1, 2, 3, 4]),
+                                        name='coord_loss') * self.coord_scale
 
             tf.losses.add_loss(class_loss)
             tf.losses.add_loss(object_loss)
@@ -203,4 +211,5 @@ class YOLONet(object):
 def leaky_relu(alpha):
     def op(inputs):
         return tf.maximum(alpha * inputs, inputs, name='leaky_relu')
+
     return op

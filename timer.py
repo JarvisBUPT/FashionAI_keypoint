@@ -1,9 +1,11 @@
 import time, datetime
 
+
 class Timer(object):
     '''
     A simple timer.
     '''
+
     def __init__(self):
         self.init_time = time.time()
         self.total_time = 0.
@@ -33,5 +35,5 @@ class Timer(object):
             self.remain_time = 0
         else:
             self.remain_time = (time.time() - self.init_time) * \
-                                (max_iters - iters) / iters
+                               (max_iters - iters) / iters
         return str(datetime.timedelta(seconds=int(self.remain_time)))

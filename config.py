@@ -24,7 +24,6 @@ CLASSES = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus',
 
 FLIPPED = True
 
-
 #
 # model parameter
 #
@@ -43,7 +42,6 @@ OBJECT_SCALE = 1.0
 NOOBJECT_SCALE = 1.0
 CLASS_SCALE = 2.0
 COORD_SCALE = 5.0
-
 
 #
 # solver parameter
@@ -66,7 +64,6 @@ MAX_ITER = 15000
 SUMMARY_ITER = 10
 
 SAVE_ITER = 1000
-
 
 #
 # test parameter
