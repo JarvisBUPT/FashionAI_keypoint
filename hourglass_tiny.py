@@ -224,20 +224,21 @@ l           logdir_train       : Directory to Train Log file
             load	: Model to load (None if training from scratch) (see README for further information)
         """
         with tf.name_scope('Session'):
-            # with tf.device(self.gpu):
-            self._init_session()
-            self._define_saver_summary(summary=False)
-            if load is not None:
-                print('Loading Trained Model')
-                t = time.time()
-                try:
-                    # self.saver.restore(self.Session, load)
-                    self.saver.restore(self.Session, "./checkpoint")
-                except Exception:
-                    print('Loading Failed! (Check README file for further information)')
-                print('Model Loaded (', time.time() - t, ' sec.)')
-            else:
-                print('Please give a Model in args (see README for further information)')
+            with tf.device(self.gpu):
+                self._init_session()
+                self._define_saver_summary(summary=False)
+                if load is not None:
+                    print('Loading Trained Model')
+                    t = time.time()
+                    self.saver.restore(self.Session, load)
+                    #try:
+                     #   self.saver.restore(self.Session, load)
+                        #self.saver.restore(self.Session, "./checkpoint")
+               	    #except Exception:
+                     #   print('Loading Failed! (Check README file for further information)')
+               	    print('Model Loaded (', time.time() - t, ' sec.)')
+                else:
+               	    print('Please give a Model in args (see README for further information)')
 
     def _train(self, nEpochs=10, epochSize=1000, saveStep=500, validIter=10):
         """
@@ -680,7 +681,7 @@ l           logdir_train       : Directory to Train Log file
             arg		: Tuple of max position
         """
         resh = tf.reshape(tensor, [-1])
-        argmax = tf.arg_max(resh, 0)
+        argmax = tf.argmax(resh, 0)
         return (argmax // tensor.get_shape().as_list()[0], argmax % tensor.get_shape().as_list()[0])
 
     def _compute_err(self, u, v):
