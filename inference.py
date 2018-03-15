@@ -259,7 +259,7 @@ class Inference():
 
 
 if __name__ == '__main__':
-    inf = Inference('config.cfg', 'hg_test_01')
+    inf = Inference('config.cfg', 'hg_refined_200')
     params = process_config('config.cfg')
     dataset = DataGenerator(params['joint_list'], params['img_directory_win'], params['training_txt_file'],
                             remove_joints=params['remove_joints'])
