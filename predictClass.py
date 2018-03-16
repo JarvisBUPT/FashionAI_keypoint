@@ -1334,7 +1334,7 @@ if __name__ == '__main__':
     predict.LINKS_JOINTS()
     predict.model_init()
     print("load model ...")
-    predict.load_model(load='hg_refined_200')
+    predict.load_model(load='hg_test_02_105')
     print("load model end")
     predict.yolo_init()
     predict.restore_yolo(load='YOLO_small.ckpt')
