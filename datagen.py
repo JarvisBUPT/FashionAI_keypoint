@@ -131,6 +131,7 @@ class DataGenerator():
             line = line.strip()
             line = line.split(' ')
             name = line[0]
+            print("line", line)
             box = list(map(int, line[1:5]))
             joints = list(map(int, line[5:]))
             if self.toReduce:
@@ -166,7 +167,7 @@ class DataGenerator():
         """ Returns a List of Samples
         Args:
             batch_size	: Number of sample wanted
-            set				: Set to use (valid/train)
+            set			: Set to use (valid/train)
         """
         list_file = []
         for i in range(batch_size):
@@ -292,7 +293,7 @@ class DataGenerator():
         """ Given a bounding box and padding values return cropped image
         Args:
             img			: Source Image
-            padding	: Padding
+            padding	    : Padding
             crop_box	: Bounding Box
         """
         img = np.pad(img, padding, mode='constant')
@@ -322,7 +323,7 @@ class DataGenerator():
         """ Convert Absolute joint coordinates to crop box relative joint coordinates
         (Used to compute Heat Maps)
         Args:
-            box			: Bounding Box
+            box		: Bounding Box
             padding	: Padding Added to the original Image
             to_size	: Heat Map wanted Size
         """
@@ -574,3 +575,13 @@ class DataGenerator():
                 return False
         else:
             print('Specify a sample name')
+if __name__ == '__main__':
+    from train_launcher import process_config
+
+    params = process_config('config_win.cfg')
+    print(params)
+    dataset = DataGenerator(params['joint_list'], params['img_directory'], params['training_txt_file'],
+                            remove_joints=params['remove_joints'])
+    dataset._create_train_table()
+    dataset._randomize()
+    dataset._create_sets()

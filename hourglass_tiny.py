@@ -231,14 +231,14 @@ l           logdir_train       : Directory to Train Log file
                     print('Loading Trained Model')
                     t = time.time()
                     self.saver.restore(self.Session, load)
-                    #try:
-                     #   self.saver.restore(self.Session, load)
-                        #self.saver.restore(self.Session, "./checkpoint")
-               	    #except Exception:
-                     #   print('Loading Failed! (Check README file for further information)')
-               	    print('Model Loaded (', time.time() - t, ' sec.)')
+                    # try:
+                    #   self.saver.restore(self.Session, load)
+                    # self.saver.restore(self.Session, "./checkpoint")
+                    # except Exception:
+                    #   print('Loading Failed! (Check README file for further information)')
+                    print('Model Loaded (', time.time() - t, ' sec.)')
                 else:
-               	    print('Please give a Model in args (see README for further information)')
+                    print('Please give a Model in args (see README for further information)')
 
     def _train(self, nEpochs=10, epochSize=1000, saveStep=500, validIter=10):
         """
