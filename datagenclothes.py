@@ -1,32 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Deep Human Pose Estimation
- 
-Project by Walid Benbihi
-MSc Individual Project
-Imperial College
-Created on Wed Jul 12 15:53:44 2017
- 
-@author: Walid Benbihi
-@mail : w.benbihi(at)gmail.com
-@github : https://github.com/wbenbihi/hourglasstensorlfow/
- 
-Abstract:
-        This python code creates a Stacked Hourglass Model
-        (Credits : A.Newell et al.)
-        (Paper : https://arxiv.org/abs/1603.06937)
-        
-        Code translated from 'anewell' github
-        Torch7(LUA) --> TensorFlow(PYTHON)
-        (Code : https://github.com/anewell/pose-hg-train)
-        
-        Modification are made and explained in the report
-        Goal : Achieve Real Time detection (Webcam)
-        ----- Modifications made to obtain faster results (trade off speed/accuracy)
-        
-        This work is free of use, please cite the author if you use it!
-
-"""
 import numpy as np
 import cv2
 import os
@@ -35,9 +7,11 @@ import random
 import time
 from skimage import transform
 import scipy.misc as scm
+import csv
+from itertools import islice
 
 
-class DataGenerator():
+class DataGenClothes(object):
     """ DataGenerator Class : To generate Train, Validatidation and Test sets
     for the Deep Human Pose Estimation Model
     Formalized DATA:
@@ -66,86 +40,86 @@ class DataGenerator():
             15 - Left Wrist
     # TODO : Modify selection of joints for Training
 
-    How to generate Dataset:
-        Create a TEXT file with the following structure:
-            image_name.jpg[LETTER] box_xmin box_ymin box_xmax b_ymax joints
-            [LETTER]:
-                One image can contain multiple person. To use the same image
-                finish the image with a CAPITAL letter [A,B,C...] for
-                first/second/third... person in the image
-             joints :
-                Sequence of x_p y_p (p being the p-joint)
-                /!\ In case of missing values use -1
+   """
 
-    The Generator will read the TEXT file to create a dictionnary
-    Then 2 options are available for training:
-        Store image/heatmap arrays (numpy file stored in a folder: need disk space but faster reading)
-        Generate image/heatmap arrays when needed (Generate arrays while training, increase training time - Need to compute arrays at every iteration)
-    """
-
-    def __init__(self, joints_name=None, img_dir=None, train_data_file=None, remove_joints=None):
+    def __init__(self, joints_list=None, img_dir=None, train_data_file=None, category=None):
         """ Initializer
         Args:
             joints_name			: List of joints condsidered
-            img_dir				: Directory containing every images
-            train_data_file		: Text file with training set data
+            img_dir				: Directory containing clothes category
+            train_data_file		: csv file with training set data
+            category    		: List of clothes category
             remove_joints		: Joints List to keep (See documentation)
+        Instance Var:
+            self.joints_list    : List of name of clothes Keypoint
+            self.category       : List of clothes category
+            self.images         : List of all images
+            self.category       : List of clthes category
         """
-        if joints_name == None:
-            self.joints_list = ['r_anckle', 'r_knee', 'r_hip', 'l_hip', 'l_knee', 'l_anckle', 'pelvis', 'thorax',
-                                'neck', 'head', 'r_wrist', 'r_elbow', 'r_shoulder', 'l_shoulder', 'l_elbow', 'l_wrist']
-        else:
-            self.joints_list = joints_name
-        self.toReduce = False
-        if remove_joints is not None:
-            self.toReduce = True
-            self.weightJ = remove_joints
 
-        self.letter = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N']
-        self.img_dir = img_dir
+        if joints_list is None:
+            self.joints_list = ['neckline_left', 'neckline_right', 'center_front', 'shoulder_left', 'shoulder_right',
+                                'armpit_left', 'armpit_right', 'waistline_left', 'waistline_right', 'cuff_left_in',
+                                'cuff_left_out', 'cuff_right_in', 'cuff_right_out', 'top_hem_left', 'top_hem_right',
+                                'waistband_left', 'waistband_right', 'hemline_left', 'hemline_right', 'crotch',
+                                'bottom_left_in', 'bottom_left_out', 'bottom_right_in', 'bottom_right_out']
+        else:
+            self.joints_list = joints_list
+
         self.train_data_file = train_data_file
-        self.images = os.listdir(img_dir)
+        self.images = []
+        for k in category:
+            img_dir_cat = os.path.join(img_dir, k)
+            self.images.extend(os.listdir(img_dir_cat))
+
+        self.category = category
+        print(self.images)
+        print(self.images.__len__())
 
     # --------------------Generator Initialization Methods ---------------------
 
 
-    def _reduce_joints(self, joints):
-        """ Select Joints of interest from self.weightJ
-        """
-        j = []
-        for i in range(len(self.weightJ)):
-            if self.weightJ[i] == 1:
-                j.append(joints[2 * i])
-                j.append(joints[2 * i + 1])
-        return j
-
     def _create_train_table(self):
         """ Create Table of samples from TEXT file
         """
-        self.train_table = []
-        self.no_intel = []
-        self.data_dict = {}
-        input_file = open(self.train_data_file, 'r')
+        self.train_table = []  # 记录图片名字的list
+        self.no_intel = []  # 记录没有任何关键点标志的图片name的list
+        self.data_dict = {}  # 以每张图片的name为key，记录每张图片的数据结构"joints"、"visible"、"visible"、"category"
+
         print('READING TRAIN DATA')
-        for line in input_file:
-            line = line.strip()
-            line = line.split(' ')
-            name = line[0]
-            box = list(map(int, line[1:5]))
-            joints = list(map(int, line[5:]))
-            if self.toReduce:
-                joints = self._reduce_joints(joints)
-            if joints == [-1] * len(joints):
-                self.no_intel.append(name)
-            else:
-                joints = np.reshape(joints, (-1, 2))
-                w = [1] * joints.shape[0]
-                for i in range(joints.shape[0]):
-                    if np.array_equal(joints[i], [-1, -1]):
-                        w[i] = 0
-                self.data_dict[name] = {'box': box, 'joints': joints, 'weights': w}
+        start_time = time.time()
+
+        with open(self.train_data_file, "r") as f:
+            for value in islice(f, 1, None):  # 读取去掉第一行之后的数据
+                joint_ = []  # 记录每张图的关节点坐标x1,y1,x2,y2...，并且对于不可见和不存在的点的坐标变成-1，-1
+                value = value.strip()
+                line = value.split(',')
+                name = line[0]
                 self.train_table.append(name)
-        input_file.close()
+                category = line[1]
+                keypoints = list(line[2:])  # 只截取关键点部位的坐标，x_y_visible,
+                isvisible = []  # 每个关键点的可见度
+                # joints = [map(int, cord.split('_')) for cord in keypoints]
+                for cord in keypoints:
+                    x, y, visible = cord.split('_')
+                    if visible == '0':
+                        joint_.append(-1)
+                        joint_.append(-1)
+                    else:
+                        joint_.append(int(x))
+                        joint_.append(int(y))
+                    isvisible.append(int(visible))
+                if joint_ == [-1] * len(joint_):
+                    self.no_intel.append(name)
+                else:
+                    joints = np.reshape(joint_, (-1, 2))
+                    w = [1] * joints.shape[0]
+                    for i in range(joints.shape[0]):
+                        if np.array_equal(joints[i], [-1, -1]):
+                            w[i] = 0
+                    self.data_dict[name] = {'category': category, 'joints': joints, 'weights': w, 'visible': isvisible}
+                    self.train_table.append(name)
+        print("_create_train_table %f  s" % (time.time() - start_time))
 
     def _randomize(self):
         """ Randomize the set
@@ -182,7 +156,7 @@ class DataGenerator():
     def _create_sets(self, validation_rate=0.1):
         """ Select Elements to feed training and validation set
         Args:
-            validation_rate		: Percentage of validation data (in ]0,1[, don't waste time use 0.1)
+            validation_rate		: Percentage of validation data (in [0,1], don't waste time use 0.1)
         """
         sample = len(self.train_table)
         valid_sample = int(sample * validation_rate)
@@ -367,8 +341,9 @@ class DataGenerator():
                     try:
                         img = self.open_img(name)
                         joints = self.data_dict[name]['joints']
-                        box = self.data_dict[name]['box']
+                        category = self.data_dict[name]['categpry']
                         weight = self.data_dict[name]['weights']
+                        visible = self.data_dict[name]['visible']
                         if debug:
                             print(box)
                         padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2)
@@ -582,13 +557,15 @@ if __name__ == '__main__':
     print('--Parsing Config File')
     name = os.name
     if name == 'nt':
-        config_file = 'config_win.cfg'
+        config_file = 'config_clothes_win.cfg'
     else:
-        config_file = 'config_test.cfg'
+        config_file = 'config_clothes.cfg'
     params = process_config(config_file)
     print(params)
-    dataset = DataGenerator(params['joint_list'], params['img_directory'], params['training_txt_file'],
-                            remove_joints=params['remove_joints'])
+    # dataset = DataGenClothes(params['joint_list'], params['img_directory'], params['training_txt_file'],
+    #                          params['category'])
+    dataset = DataGenClothes(params['joint_list'], params['img_directory'], 'test.csv',
+                             params['category'])
     dataset._create_train_table()
     dataset._randomize()
     dataset._create_sets()

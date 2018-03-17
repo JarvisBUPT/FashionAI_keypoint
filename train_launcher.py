@@ -6,6 +6,7 @@ TRAIN LAUNCHER
 import configparser
 from hourglass_tiny import HourglassModel
 from datagen import DataGenerator
+import os
 
 
 def process_config(conf_file):
@@ -35,8 +36,13 @@ def process_config(conf_file):
 
 if __name__ == '__main__':
     print('--Parsing Config File')
-    params = process_config('config_test.cfg')
-
+    name = os.name
+    if name == 'nt':
+        config_file = 'config_win.cfg'
+    else:
+        config_file = 'config_test.cfg'
+    params = process_config(config_file)
+    print("params =", params)
     print('--Creating Dataset')
     dataset = DataGenerator(params['joint_list'], params['img_directory'], params['training_txt_file'],
                             remove_joints=params['remove_joints'])

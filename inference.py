@@ -28,6 +28,7 @@ Abstract:
 
 """
 import sys
+import os
 
 sys.path.append('./')
 
@@ -260,8 +261,14 @@ class Inference():
 
 
 if __name__ == '__main__':
+    name = os.name
+    if name == 'nt':
+        config_file = 'config_win.cfg'
+    else:
+        config_file = 'config_test.cfg'
+    params = process_config(config_file)
+    print(params)
     inf = Inference('config_test.cfg', 'hg_test_01_200')
-    params = process_config('config_test.cfg')
     dataset = DataGenerator(params['joint_list'], params['img_directory_win'], params['training_txt_file'],
                             remove_joints=params['remove_joints'])
     img = dataset.open_img('000033016.jpg')

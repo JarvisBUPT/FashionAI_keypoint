@@ -29,6 +29,7 @@ Abstract:
 """
 
 import sys
+import os
 
 sys.path.append('./')
 
@@ -1325,8 +1326,16 @@ class PredictProcessor():
 
 
 if __name__ == '__main__':
+    print('--Parsing Config File')
+    name = os.name
+    if name == 'nt':
+        config_file = 'config_win.cfg'
+        model = 'hg_test_01_200'
+    else:
+        config_file = 'config_test.cfg'
+
     t = time()
-    params = process_config('config.cfg')
+    params = process_config(config_file)
     print(params)
     predict = PredictProcessor(params)
     print(predict)
@@ -1334,7 +1343,7 @@ if __name__ == '__main__':
     predict.LINKS_JOINTS()
     predict.model_init()
     print("load model ...")
-    predict.load_model(load='hg_test_01_200')
+    predict.load_model(load=model)
     print("load model end")
     predict.yolo_init()
     predict.restore_yolo(load='YOLO_small.ckpt')
