@@ -193,7 +193,7 @@ class PredictProcessor():
                 resh = tf.reshape(tensor[-1, :, :, 0], [-1])
             if debug:
                 print(resh)
-            arg = tf.arg_max(resh, 0)
+            arg = tf.argmax(resh, 0)
             if debug:
                 print(arg, arg.get_shape(), arg.get_shape().as_list())
             joints = tf.expand_dims(tf.stack([arg // tf.to_int64(shape[1]), arg % tf.to_int64(shape[1])], axis=-1),
@@ -203,7 +203,7 @@ class PredictProcessor():
                     resh = tf.reshape(tensor[:, :, i], [-1])
                 elif len(shape) == 4:
                     resh = tf.reshape(tensor[-1, :, :, i], [-1])
-                arg = tf.arg_max(resh, 0)
+                arg = tf.argmax(resh, 0)
                 j = tf.expand_dims(tf.stack([arg // tf.to_int64(shape[1]), arg % tf.to_int64(shape[1])], axis=-1),
                                    axis=0)
                 joints = tf.concat([joints, j], axis=0)
@@ -1334,7 +1334,7 @@ if __name__ == '__main__':
     predict.LINKS_JOINTS()
     predict.model_init()
     print("load model ...")
-    predict.load_model(load='hg_refined_200')
+    predict.load_model(load='hg_test_01_200')
     print("load model end")
     predict.yolo_init()
     predict.restore_yolo(load='YOLO_small.ckpt')

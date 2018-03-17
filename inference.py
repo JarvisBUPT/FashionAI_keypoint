@@ -145,6 +145,7 @@ class Inference():
         elif len(img.shape) == 4:
             batch = np.copy(img)
             SIZE = True
+        print(batch.shape)
         if SIZE:
             if mode == 'cpu':
                 return self.predict.joints_pred_numpy(batch / 255, coord='img', thresh=thresh, sess=None)
@@ -259,11 +260,14 @@ class Inference():
 
 
 if __name__ == '__main__':
-    inf = Inference('config.cfg', 'hg_refined_200')
-    params = process_config('config.cfg')
+    inf = Inference('config_test.cfg', 'hg_test_01_200')
+    params = process_config('config_test.cfg')
     dataset = DataGenerator(params['joint_list'], params['img_directory_win'], params['training_txt_file'],
                             remove_joints=params['remove_joints'])
     img = dataset.open_img('000033016.jpg')
-    print(img)
+    img1 = cv2.resize(img, (256, 256))
     print(img.shape)
-    inf.predictJoints(img)
+    print(img1.shape)
+    pJ=inf.predictJoints(img1)
+    print("pj = ", pJ)
+    print(pJ.shape)

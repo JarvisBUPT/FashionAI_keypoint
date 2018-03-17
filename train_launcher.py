@@ -35,7 +35,7 @@ def process_config(conf_file):
 
 if __name__ == '__main__':
     print('--Parsing Config File')
-    params = process_config('config.cfg')
+    params = process_config('config_test.cfg')
 
     print('--Creating Dataset')
     dataset = DataGenerator(params['joint_list'], params['img_directory'], params['training_txt_file'],
