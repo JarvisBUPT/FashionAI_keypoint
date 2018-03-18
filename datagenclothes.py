@@ -38,22 +38,22 @@ class DataGenClothes(object):
             13 - Left Shoulder
             14 - Left Elbow
             15 - Left Wrist
-    # TODO : Modify selection of joints for Training
+    self.data_dict是以每张图片的name为key，记录每张图片的dict,其key为"joints"、"visible"、"visible"、"category"
+
 
    """
 
     def __init__(self, joints_list=None, img_dir=None, train_data_file=None, category=None):
         """ Initializer
         Args:
-            joints_name			: List of joints condsidered
+            joints_list			: List of joints condsidered
             img_dir				: Directory containing clothes category
             train_data_file		: csv file with training set data
             category    		: List of clothes category
-            remove_joints		: Joints List to keep (See documentation)
         Instance Var:
             self.joints_list    : List of name of clothes Keypoint
             self.category       : List of clothes category
-            self.images         : List of all images
+            self.images         : List of names of all images
             self.category       : List of clthes category
         """
 
@@ -68,6 +68,8 @@ class DataGenClothes(object):
 
         self.train_data_file = train_data_file
         self.images = []
+        img_dir = os.path.join(img_dir, "Images")
+        print(img_dir)
         for k in category:
             img_dir_cat = os.path.join(img_dir, k)
             self.images.extend(os.listdir(img_dir_cat))
@@ -84,20 +86,23 @@ class DataGenClothes(object):
         """
         self.train_table = []  # 记录图片名字的list
         self.no_intel = []  # 记录没有任何关键点标志的图片name的list
-        self.data_dict = {}  # 以每张图片的name为key，记录每张图片的数据结构"joints"、"visible"、"visible"、"category"
+        self.data_dict = {}  # 以每张图片的name为key，记录每张图片的dict,key为"joints"、"visible"、"visible"、"category"
 
-        print('READING TRAIN DATA')
+        print('Reading Train Data')
         start_time = time.time()
 
         with open(self.train_data_file, "r") as f:
             for value in islice(f, 1, None):  # 读取去掉第一行之后的数据
                 joint_ = []  # 记录每张图的关节点坐标x1,y1,x2,y2...，并且对于不可见和不存在的点的坐标变成-1，-1
                 value = value.strip()
+                if value == '':
+                    break
                 line = value.split(',')
                 name = line[0]
                 self.train_table.append(name)
                 category = line[1]
                 keypoints = list(line[2:])  # 只截取关键点部位的坐标，x_y_visible,
+                box = list([-1, -1, -1, -1])
                 isvisible = []  # 每个关键点的可见度
                 # joints = [map(int, cord.split('_')) for cord in keypoints]
                 for cord in keypoints:
@@ -117,8 +122,9 @@ class DataGenClothes(object):
                     for i in range(joints.shape[0]):
                         if np.array_equal(joints[i], [-1, -1]):
                             w[i] = 0
-                    self.data_dict[name] = {'category': category, 'joints': joints, 'weights': w, 'visible': isvisible}
-                    self.train_table.append(name)
+                    self.data_dict[name] = {'category': category, 'box': box, 'joints': joints, 'weights': w,
+                                            'visible': isvisible}
+        print("data_dict totals :", len(self.data_dict))
         print("_create_train_table %f  s" % (time.time() - start_time))
 
     def _randomize(self):
@@ -158,22 +164,25 @@ class DataGenClothes(object):
         Args:
             validation_rate		: Percentage of validation data (in [0,1], don't waste time use 0.1)
         """
+        print('Start Create Set ...')
         sample = len(self.train_table)
+        print("train_table have %d samples" % sample)
         valid_sample = int(sample * validation_rate)
+        print("val_sample have %d samples" % valid_sample)
         self.train_set = self.train_table[:sample - valid_sample]
         self.valid_set = []
-        preset = self.train_table[sample - valid_sample:]
-        print('START SET CREATION')
-        for elem in preset:
-            if self._complete_sample(elem):
-                self.valid_set.append(elem)
-            else:
-                self.train_set.append(elem)
-        print('SET CREATED')
+        # preset = self.train_table[sample - valid_sample:]
+        # for elem in preset:
+        #     if self._complete_sample(elem):
+        #         self.valid_set.append(elem)
+        #     else:
+        #         self.train_set.append(elem)
+        self.valid_set = self.train_table[sample - valid_sample:]
         np.save('Dataset-Validation-Set', self.valid_set)
         np.save('Dataset-Training-Set', self.train_set)
         print('--Training set :', len(self.train_set), ' samples.')
         print('--Validation set :', len(self.valid_set), ' samples.')
+        print('Set Created')
 
     def generateSet(self, rand=False):
         """ Generate the training and validation set
@@ -185,8 +194,7 @@ class DataGenClothes(object):
             self._randomize()
         self._create_sets()
 
-    # ---------------------------- Generating Methods --------------------------
-
+        # ---------------------------- Generating Methods --------------------------
 
     def _makeGaussian(self, height, width, sigma=3, center=None):
         """ Make a square gaussian kernel.
@@ -316,7 +324,7 @@ class DataGenClothes(object):
             hm = transform.rotate(hm, r_angle)
         return img, hm
 
-    # ----------------------- Batch Generator ----------------------------------
+        # ----------------------- Batch Generator ----------------------------------
 
     def _generator(self, batch_size=16, stacks=4, set='train', stored=False, normalize=True, debug=False):
         """ Create Generator for Training
@@ -341,8 +349,9 @@ class DataGenClothes(object):
                     try:
                         img = self.open_img(name)
                         joints = self.data_dict[name]['joints']
-                        category = self.data_dict[name]['categpry']
+                        box = self.data_dict[name]['box']
                         weight = self.data_dict[name]['weights']
+                        category = self.data_dict[name]['category']
                         visible = self.data_dict[name]['visible']
                         if debug:
                             print(box)
@@ -397,6 +406,8 @@ class DataGenClothes(object):
                     joints = self.data_dict[name]['joints']
                     box = self.data_dict[name]['box']
                     weight = np.asarray(self.data_dict[name]['weights'])
+                    category = self.data_dict[name]['category']
+                    visible = self.data_dict[name]['visible']
                     train_weights[i] = weight
                     img = self.open_img(name)
                     padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2)
@@ -428,7 +439,8 @@ class DataGenClothes(object):
         """
         return self._aux_generator(batch_size=batchSize, stacks=stacks, normalize=norm, sample_set=sample)
 
-    # ---------------------------- Image Reader --------------------------------
+        # ---------------------------- Image Reader --------------------------------
+
     def open_img(self, name, color='RGB'):
         """ Open an image
         Args:
@@ -495,7 +507,8 @@ class DataGenClothes(object):
                 cv2.destroyAllWindows()
                 break
 
-    # ------------------------------- PCK METHODS-------------------------------
+                # ------------------------------- PCK METHODS-------------------------------
+
     def pck_ready(self, idlh=3, idrs=12, testSet=None):
         """ Creates a list with all PCK ready samples
         (PCK: Percentage of Correct Keypoints)
@@ -534,6 +547,8 @@ class DataGenClothes(object):
                 joints = self.data_dict[sample]['joints']
                 box = self.data_dict[sample]['box']
                 w = self.data_dict[sample]['weights']
+                category = self.data_dict[name]['category']
+                visible = self.data_dict[name]['visible']
                 img = self.open_img(sample)
                 padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2)
                 new_j = self._relative_joints(cbox, padd, joints, to_size=256)
@@ -552,7 +567,7 @@ class DataGenClothes(object):
 
 
 if __name__ == '__main__':
-    from train_launcher import process_config
+    from train_clothes import process_config_clothes
 
     print('--Parsing Config File')
     name = os.name
@@ -560,7 +575,7 @@ if __name__ == '__main__':
         config_file = 'config_clothes_win.cfg'
     else:
         config_file = 'config_clothes.cfg'
-    params = process_config(config_file)
+    params = process_config_clothes(config_file)
     print(params)
     # dataset = DataGenClothes(params['joint_list'], params['img_directory'], params['training_txt_file'],
     #                          params['category'])

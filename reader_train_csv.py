@@ -1,6 +1,9 @@
 import csv
 from itertools import islice
 
+"""
+    该文件是一个测试文件，测试怎么使用读取和写入csv文件
+"""
 data_path = "/home/sk39/workspace/dataset/tianchi_clothes/train/Annotations/annotations.csv"
 test_path = "test.csv"
 f = open(test_path, "r")

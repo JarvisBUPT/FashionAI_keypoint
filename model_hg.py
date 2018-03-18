@@ -1,31 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Deep Human Pose Estimation
-
-Project by Walid Benbihi
-MSc Individual Project
-Imperial College
-Created on Mon Jul 10 19:13:56 2017
-
-@author: Walid Benbihi
-@mail : w.benbihi(at)gmail.com
-@github : https://github.com/wbenbihi/hourglasstensorlfow/
-
-Abstract:
-    This python code creates a Stacked Hourglass Model
-    (Credits : A.Newell et al.)
-    (Paper : https://arxiv.org/abs/1603.06937)
-
-    Code translated from 'anewell' github
-    Torch7(LUA) --> TensorFlow(PYTHON)
-    (Code : https://github.com/anewell/pose-hg-train)
-
-    Modification are made and explained in the report
-    Goal : Achieve Real Time detection (Webcam)
-    ----- Modifications made to obtain faster results (trade off speed/accuracy)
-
-    This work is free of use, please cite the author if you use it!
-"""
 import os
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -37,18 +10,16 @@ import datetime
 import os
 
 
-class HourglassModel():
+class HourglassModelForClothes():
     """ HourglassModel class: (to be renamed)
-    Generate TensorFlow model to train and predict Human Pose from images (soon videos)
+    Generate TensorFlow model to train and predict clothes keypooint from images
     Please check README.txt for further information on model management.
     """
 
     def __init__(self, nFeat=512, nStack=4, nModules=1, nLow=4, outputDim=16, batch_size=16, drop_rate=0.2,
                  lear_rate=2.5e-4, decay=0.96, decay_step=2000, dataset=None, training=True, w_summary=True,
                  logdir_train=None, logdir_test=None, tiny=True, attention=False, modif=True, w_loss=False,
-                 name='tiny_hourglass',
-                 joints=['r_anckle', 'r_knee', 'r_hip', 'l_hip', 'l_knee', 'l_anckle', 'pelvis', 'thorax', 'neck',
-                         'head', 'r_wrist', 'r_elbow', 'r_shoulder', 'l_shoulder', 'l_elbow', 'l_wrist']):
+                 name='tiny_hourglass', joints=None):
         """ Initializer
         Args:
             nStack				: number of stacks (stage/Hourglass modules)
@@ -71,6 +42,13 @@ l           logdir_train       : Directory to Train Log file
             modif				: (bool) Boolean to test some network modification # DO NOT USE IT ! USED TO TEST THE NETWORK
             name				: name of the model
         """
+        if joints is None:
+            joints = ['neckline_left', 'neckline_right', 'center_front', 'shoulder_left', 'shoulder_right',
+                      'armpit_left', 'armpit_right', 'waistline_left', 'waistline_right', 'cuff_left_in',
+                      'cuff_left_out', 'cuff_right_in', 'cuff_right_out', 'top_hem_left', 'top_hem_right',
+                      'waistband_left', 'waistband_right', 'hemline_left', 'hemline_right', 'crotch',
+                      'bottom_left_in', 'bottom_left_out', 'bottom_right_in', 'bottom_right_out']
+        
         self.nStack = nStack
         self.nFeat = nFeat
         self.nModules = nModules
@@ -139,7 +117,7 @@ l           logdir_train       : Directory to Train Log file
 
     def get_saver(self):
         """ Returns Saver
-        /!\ USE ONLY IF YOU KNOW WHAT YOU ARE DOING
+        /!\ Use Only If You Know What You Are Doing
         Warning:
             Be sure to build the model first
         """
@@ -231,11 +209,6 @@ l           logdir_train       : Directory to Train Log file
                     print('Loading Trained Model')
                     t = time.time()
                     self.saver.restore(self.Session, load)
-                    # try:
-                    #   self.saver.restore(self.Session, load)
-                    # self.saver.restore(self.Session, "./checkpoint")
-                    # except Exception:
-                    #   print('Loading Failed! (Check README file for further information)')
                     print('Model Loaded (', time.time() - t, ' sec.)')
                 else:
                     print('Please give a Model in args (see README for further information)')
@@ -330,7 +303,7 @@ l           logdir_train       : Directory to Train Log file
             print('  Relative Improvement: ' + str((self.resume['err'][-1] - self.resume['err'][0]) * 100) + '%')
             print('  Training Time: ' + str(datetime.timedelta(seconds=time.time() - startTime)))
 
-    def record_training(self,  ):
+    def record_training(self, record):
         """ Record Training Data and Export them in CSV file
         Args:
             record		: record dictionnary
@@ -350,10 +323,10 @@ l           logdir_train       : Directory to Train Log file
         """ Initialize the training
         Args:
             nEpochs		: Number of Epochs to train
-            epochSize	: Size of one Epoch
-            saveStep	: Step to save 'train' summary (has to be lower than epochSize)
+            epochSize		: Size of one Epoch
+            saveStep		: Step to save 'train' summary (has to be lower than epochSize)
             dataset		: Data Generator (see generator.py)
-            load		: Model to load (None if training from scratch) (see README for further information)
+            load			: Model to load (None if training from scratch) (see README for further information)
         """
         with tf.name_scope('Session'):
             with tf.device(self.gpu):
@@ -369,7 +342,7 @@ l           logdir_train       : Directory to Train Log file
 
     def weighted_bce_loss(self):
         """ Create Weighted Loss Function
-        WORK IN PROGRESS
+        Work In Process
         """
         self.bceloss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.output, labels=self.gtMaps),
                                       name='cross_entropy_loss')
@@ -390,7 +363,7 @@ l           logdir_train       : Directory to Train Log file
     def _define_saver_summary(self, summary=True):
         """ Create Summary and Saver
         Args:
-            logdir_train	: Path to train summary directory
+            logdir_train		: Path to train summary directory
             logdir_test		: Path to test summary directory
         """
         if (self.logdir_train == None) or (self.logdir_test == None):
@@ -458,7 +431,7 @@ l           logdir_train       : Directory to Train Log file
                                                     name='dropout')
                         ll[0] = self._conv_bn_relu(drop[0], self.nFeat, 1, 1, name='ll')
                         if self.modif:
-                            # Test Of Batch Relu
+                            # TEST OF BATCH RELU
                             out[0] = self._conv_bn_relu(ll[0], self.outDim, 1, 1, 'VALID', 'out')
                         else:
                             out[0] = self._conv(ll[0], self.outDim, 1, 1, 'VALID', 'out')
@@ -540,9 +513,9 @@ l           logdir_train       : Directory to Train Log file
         """ Spatial Convolution (CONV2D)
         Args:
             inputs			: Input Tensor (Data Type : NHWC)
-            filters		: Number of filters (channels)
-            kernel_size	: Size of kernel
-            strides		: Stride
+            filters		    : Number of filters (channels)
+            kernel_size	    : Size of kernel
+            strides		    : Stride
             pad				: Padding Type (VALID/SAME) # DO NOT USE 'SAME' NETWORK BUILT FOR VALID
             name			: Name of the block
         Returns:
@@ -712,8 +685,8 @@ l           logdir_train       : Directory to Train Log file
             err = tf.add(err, self._compute_err(pred[i], gtMap[i]))
         return tf.subtract(tf.to_float(1), err / num_image)
 
-    # MULTI CONTEXT ATTENTION MECHANISM
-    # WORK IN PROGRESS DO NOT USE THESE METHODS
+    # multi context attention mechanism
+    # work in progress do not use these methods
     # BASED ON:
     # Multi-Context Attention for Human Pose Estimation
     # Authors: Xiao Chu, Wei Yang, Wanli Ouyang, Cheng Ma, Alan L. Yuille, Xiaogang Wang
