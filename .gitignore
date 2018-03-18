@@ -107,7 +107,6 @@ ENV/
 hourglass_saver
 
 # tensorflow models file
-hg_test_*.*
-hg_refined*.*
+hg_*.*
 YOLO_small.ckpt
 checkpoint
