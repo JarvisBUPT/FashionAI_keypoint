@@ -260,9 +260,13 @@ class DataGenerator():
         """
         padding = [[0, 0], [0, 0], [0, 0]]
         j = np.copy(joints)
+        print("j",j)
+        print("height",height)
+        print("width",width)
         if box[0:2] == [-1, -1]:
             j[joints == -1] = 1e5
             box[0], box[1] = min(j[:, 0]), min(j[:, 1])
+        print("box1", box)
         crop_box = [box[0] - int(boxp * (box[2] - box[0])), box[1] - int(boxp * (box[3] - box[1])),
                     box[2] + int(boxp * (box[2] - box[0])), box[3] + int(boxp * (box[3] - box[1]))]
         if crop_box[0] < 0: crop_box[0] = 0
@@ -272,8 +276,10 @@ class DataGenerator():
         new_h = int(crop_box[3] - crop_box[1])
         new_w = int(crop_box[2] - crop_box[0])
         crop_box = [crop_box[0] + new_w // 2, crop_box[1] + new_h // 2, new_w, new_h]
+        print("crop_box", crop_box)
         if new_h > new_w:
             bounds = (crop_box[0] - new_h // 2, crop_box[0] + new_h // 2)
+            print("bounds", bounds)
             if bounds[0] < 0:
                 padding[1][0] = abs(bounds[0])
             if bounds[1] > width - 1:
@@ -326,8 +332,11 @@ class DataGenerator():
             padding	: Padding Added to the original Image
             to_size	: Heat Map wanted Size
         """
+        print("_relative_joints")
+        print("box",box,padding)
         new_j = np.copy(joints)
         max_l = max(box[2], box[3])
+        print("max_l", max_l)
         new_j = new_j + [padding[1][0], padding[0][0]]
         new_j = new_j - [box[0] - max_l // 2, box[1] - max_l // 2]
         new_j = new_j * to_size / (max_l + 0.0000001)
@@ -592,3 +601,10 @@ if __name__ == '__main__':
     dataset._create_train_table()
     dataset._randomize()
     dataset._create_sets()
+    i=0
+    for k in dataset._aux_generator():
+        i+=1
+        print("...")
+        if i==1: break
+    print("end")
+

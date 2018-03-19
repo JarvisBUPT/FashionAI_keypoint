@@ -8,14 +8,18 @@ data_path = "/home/sk39/workspace/dataset/tianchi_clothes/train/Annotations/anno
 test_path = "test.csv"
 f = open(test_path, "r")
 keys = f.readline().split(',')  # 读取第一行的内容
-print(keys)
-f.close()
-imgs_dict = {}
-data_table = []
-with open(test_path, "r") as f:
-    for value in islice(f, 1, None):
-        v = value.split(',')
-        print(v)
+a = False
+b= True
+if not a and b:
+    print("1")
+# print(keys)
+# f.close()
+# imgs_dict = {}
+# data_table = []
+# with open(test_path, "r") as f:
+#     for value in islice(f, 1, None):
+#         v = value.split(',')
+#         print(v)
 
 # with open(test_path, "r") as f:
 #     reader = csv.DictReader(f)

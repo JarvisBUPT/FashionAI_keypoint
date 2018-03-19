@@ -68,10 +68,11 @@ class DataGenClothes(object):
 
         self.train_data_file = train_data_file
         self.images = []
-        img_dir = os.path.join(img_dir, "Images")
+        self.img_dir = img_dir
+        img_dir_temp = os.path.join(img_dir, "Images")
         print(img_dir)
         for k in category:
-            img_dir_cat = os.path.join(img_dir, k)
+            img_dir_cat = os.path.join(img_dir_temp, k)
             self.images.extend(os.listdir(img_dir_cat))
 
         self.category = category
@@ -241,33 +242,7 @@ class DataGenClothes(object):
             boxp		: Box percentage (Use 20% to get a good bounding box)
         """
         padding = [[0, 0], [0, 0], [0, 0]]
-        j = np.copy(joints)
-        if box[0:2] == [-1, -1]:
-            j[joints == -1] = 1e5
-            box[0], box[1] = min(j[:, 0]), min(j[:, 1])
-        crop_box = [box[0] - int(boxp * (box[2] - box[0])), box[1] - int(boxp * (box[3] - box[1])),
-                    box[2] + int(boxp * (box[2] - box[0])), box[3] + int(boxp * (box[3] - box[1]))]
-        if crop_box[0] < 0: crop_box[0] = 0
-        if crop_box[1] < 0: crop_box[1] = 0
-        if crop_box[2] > width - 1: crop_box[2] = width - 1
-        if crop_box[3] > height - 1: crop_box[3] = height - 1
-        new_h = int(crop_box[3] - crop_box[1])
-        new_w = int(crop_box[2] - crop_box[0])
-        crop_box = [crop_box[0] + new_w // 2, crop_box[1] + new_h // 2, new_w, new_h]
-        if new_h > new_w:
-            bounds = (crop_box[0] - new_h // 2, crop_box[0] + new_h // 2)
-            if bounds[0] < 0:
-                padding[1][0] = abs(bounds[0])
-            if bounds[1] > width - 1:
-                padding[1][1] = abs(width - bounds[1])
-        elif new_h < new_w:
-            bounds = (crop_box[1] - new_w // 2, crop_box[1] + new_w // 2)
-            if bounds[0] < 0:
-                padding[0][0] = abs(bounds[0])
-            if bounds[1] > width - 1:
-                padding[0][1] = abs(height - bounds[1])
-        crop_box[0] += padding[1][0]
-        crop_box[1] += padding[0][0]
+        crop_box = [width // 2, height // 2, width, height]
         return padding, crop_box
 
     def _crop_img(self, img, padding, crop_box):
@@ -398,35 +373,44 @@ class DataGenClothes(object):
             train_weights = np.zeros((batch_size, len(self.joints_list)), np.float32)
             i = 0
             while i < batch_size:
-                try:
-                    if sample_set == 'train':
-                        name = random.choice(self.train_set)
-                    elif sample_set == 'valid':
-                        name = random.choice(self.valid_set)
-                    joints = self.data_dict[name]['joints']
-                    box = self.data_dict[name]['box']
-                    weight = np.asarray(self.data_dict[name]['weights'])
-                    category = self.data_dict[name]['category']
-                    visible = self.data_dict[name]['visible']
-                    train_weights[i] = weight
-                    img = self.open_img(name)
-                    padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2)
-                    new_j = self._relative_joints(cbox, padd, joints, to_size=64)
-                    hm = self._generate_hm(64, 64, new_j, 64, weight)
-                    img = self._crop_img(img, padd, cbox)
-                    img = img.astype(np.uint8)
-                    img = scm.imresize(img, (256, 256))
-                    img, hm = self._augment(img, hm)
-                    hm = np.expand_dims(hm, axis=0)
-                    hm = np.repeat(hm, stacks, axis=0)
-                    if normalize:
-                        train_img[i] = img.astype(np.float32) / 255
-                    else:
-                        train_img[i] = img.astype(np.float32)
-                    train_gtmap[i] = hm
-                    i = i + 1
-                except:
-                    print('error file: ', name)
+                # try:
+                if sample_set == 'train':
+                    name = random.choice(self.train_set)
+                elif sample_set == 'valid':
+                    name = random.choice(self.valid_set)
+                print("_aux_generator image name =", name)
+                joints = self.data_dict[name]['joints']
+                box = self.data_dict[name]['box']
+                weight = np.asarray(self.data_dict[name]['weights'])
+                category = self.data_dict[name]['category']
+                visible = self.data_dict[name]['visible']
+                train_weights[i] = weight
+                img = self.open_img(name)
+                print("img.shape", img.shape)
+                padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2)
+                print(cbox)
+                new_j = self._relative_joints(cbox, padd, joints, to_size=64)
+                print("new_j", new_j.shape)
+                hm = self._generate_hm(64, 64, new_j, 64, weight)
+                print("hm", hm.shape)
+                img = self._crop_img(img, padd, cbox)
+                print("_crop_img img.shape", img.shape)
+                img = img.astype(np.uint8)
+                print("img.astype(np.uint8)", img.shape)
+                # img = scm.imresize(img, (256, 256))
+                img = cv2.resize(img, (256, 256))
+                print("cv2.resize(img, (256, 256))", img.shape)
+                img, hm = self._augment(img, hm)
+                hm = np.expand_dims(hm, axis=0)
+                hm = np.repeat(hm, stacks, axis=0)
+                if normalize:
+                    train_img[i] = img.astype(np.float32) / 255
+                else:
+                    train_img[i] = img.astype(np.float32)
+                train_gtmap[i] = hm
+                i = i + 1
+                # except:
+                print('error file: ', name)
             yield train_img, train_gtmap, train_weights
 
     def generator(self, batchSize=16, stacks=4, norm=True, sample='train'):
@@ -444,11 +428,9 @@ class DataGenClothes(object):
     def open_img(self, name, color='RGB'):
         """ Open an image
         Args:
-            name	: Name of the sample
+            name	: Name of the sample Images/blouse/155ee7793d159e227afb5f2e87ecf37b.jpg
             color	: Color Mode (RGB/BGR/GRAY)
         """
-        if name[-1] in self.letter:
-            name = name[:-1]
         img = cv2.imread(os.path.join(self.img_dir, name))
         if color == 'RGB':
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -584,3 +566,9 @@ if __name__ == '__main__':
     dataset._create_train_table()
     dataset._randomize()
     dataset._create_sets()
+    img_name = "Images/blouse/00a2b0f3f13413cd87fa51bb4e25fdfd.jpg"
+    img = dataset.open_img(img_name)
+    print(img.shape)
+    for k in dataset._aux_generator():
+        print(k)
+    print(",,,,")
