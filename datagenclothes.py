@@ -373,44 +373,36 @@ class DataGenClothes(object):
             train_weights = np.zeros((batch_size, len(self.joints_list)), np.float32)
             i = 0
             while i < batch_size:
-                # try:
-                if sample_set == 'train':
-                    name = random.choice(self.train_set)
-                elif sample_set == 'valid':
-                    name = random.choice(self.valid_set)
-                print("_aux_generator image name =", name)
-                joints = self.data_dict[name]['joints']
-                box = self.data_dict[name]['box']
-                weight = np.asarray(self.data_dict[name]['weights'])
-                category = self.data_dict[name]['category']
-                visible = self.data_dict[name]['visible']
-                train_weights[i] = weight
-                img = self.open_img(name)
-                print("img.shape", img.shape)
-                padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2)
-                print(cbox)
-                new_j = self._relative_joints(cbox, padd, joints, to_size=64)
-                print("new_j", new_j.shape)
-                hm = self._generate_hm(64, 64, new_j, 64, weight)
-                print("hm", hm.shape)
-                img = self._crop_img(img, padd, cbox)
-                print("_crop_img img.shape", img.shape)
-                img = img.astype(np.uint8)
-                print("img.astype(np.uint8)", img.shape)
-                # img = scm.imresize(img, (256, 256))
-                img = cv2.resize(img, (256, 256))
-                print("cv2.resize(img, (256, 256))", img.shape)
-                img, hm = self._augment(img, hm)
-                hm = np.expand_dims(hm, axis=0)
-                hm = np.repeat(hm, stacks, axis=0)
-                if normalize:
-                    train_img[i] = img.astype(np.float32) / 255
-                else:
-                    train_img[i] = img.astype(np.float32)
-                train_gtmap[i] = hm
-                i = i + 1
-                # except:
-                print('error file: ', name)
+                try:
+                    if sample_set == 'train':
+                        name = random.choice(self.train_set)
+                    elif sample_set == 'valid':
+                        name = random.choice(self.valid_set)
+                    joints = self.data_dict[name]['joints']
+                    box = self.data_dict[name]['box']
+                    weight = np.asarray(self.data_dict[name]['weights'])
+                    category = self.data_dict[name]['category']
+                    visible = self.data_dict[name]['visible']
+                    train_weights[i] = weight
+                    img = self.open_img(name)
+                    padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2)
+                    new_j = self._relative_joints(cbox, padd, joints, to_size=64)
+                    hm = self._generate_hm(64, 64, new_j, 64, weight)
+                    img = self._crop_img(img, padd, cbox)
+                    img = img.astype(np.uint8)
+                    img = scm.imresize(img, (256, 256))
+                    # img = cv2.resize(img, (256, 256))
+                    img, hm = self._augment(img, hm)
+                    hm = np.expand_dims(hm, axis=0)
+                    hm = np.repeat(hm, stacks, axis=0)
+                    if normalize:
+                        train_img[i] = img.astype(np.float32) / 255
+                    else:
+                        train_img[i] = img.astype(np.float32)
+                    train_gtmap[i] = hm
+                    i = i + 1
+                except:
+                    print('error file: ', name)
             yield train_img, train_gtmap, train_weights
 
     def generator(self, batchSize=16, stacks=4, norm=True, sample='train'):
