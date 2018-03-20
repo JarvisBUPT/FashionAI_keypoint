@@ -1330,20 +1330,17 @@ if __name__ == '__main__':
     name = os.name
     if name == 'nt':
         config_file = 'config_win.cfg'
-        model = 'hg_test_01_200'
     else:
         config_file = 'config_test.cfg'
-
     t = time()
     params = process_config(config_file)
     print(params)
     predict = PredictProcessor(params)
-    print(predict)
     predict.color_palette()
     predict.LINKS_JOINTS()
     predict.model_init()
     print("load model ...")
-    predict.load_model(load=model)
+    predict.load_model(load='hg_test_02_106')
     print("load model end")
     predict.yolo_init()
     predict.restore_yolo(load='YOLO_small.ckpt')
