@@ -1001,7 +1001,7 @@ class PredictClothes():
             gtJFull	    : Ground Truth (sampled on whole image)
             gtJ			: Ground Truth (sampled on reduced image)
             prJ			: Prediction
-            boxL		: Box Lenght
+            boxL		: Box Length
             idlh		: Index of Normalizer (Left Hip on PCK, neck on PCKh)
             idrs		: Index of Normalizer (Right Shoulder on PCK, top head on PCKh)
         """

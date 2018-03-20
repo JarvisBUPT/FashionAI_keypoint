@@ -213,19 +213,19 @@ class DataGenClothes(object):
             y0 = center[1]
         return np.exp(-4 * np.log(2) * ((x - x0) ** 2 + (y - y0) ** 2) / sigma ** 2)
 
-    def _generate_hm(self, height, width, joints, maxlenght, weight):
+    def _generate_hm(self, height, width, joints, maxlength, weight):
         """ Generate a full Heap Map for every joints in an array
         Args:
             height			: Wanted Height for the Heat Map
             width			: Wanted Width for the Heat Map
             joints			: Array of Joints
-            maxlenght		: Lenght of the Bounding Box
+            maxlength		: Length of the Bounding Box
         """
         num_joints = joints.shape[0]
         hm = np.zeros((height, width, num_joints), dtype=np.float32)
         for i in range(num_joints):
             if not (np.array_equal(joints[i], [-1, -1])) and weight[i] == 1:
-                s = int(np.sqrt(maxlenght) * maxlenght * 10 / 4096) + 2
+                s = int(np.sqrt(maxlength) * maxlength * 10 / 4096) + 2
                 hm[:, :, i] = self._makeGaussian(height, width, sigma=s, center=(joints[i, 0], joints[i, 1]))
             else:
                 hm[:, :, i] = np.zeros((height, width))
@@ -241,8 +241,48 @@ class DataGenClothes(object):
             joints		: Array of joints
             boxp		: Box percentage (Use 20% to get a good bounding box)
         """
+        # 图片以左上角为（0,0）点，往左为x轴，往下为y轴
+        # 由于img.shape返回值（1280,720,3）第一个参数1280代表高，第二个参数720代表宽，和平常理解的顺序相反，3表示RGB三种通道
+        # 所以padding[0][0]将会在原始图片的上边添加0，padding[1][0]会在图片左边加0。
+        # padding = [[0, 0], [0, 0], [0, 0]]
+        # crop_box = [width // 2, height // 2, width, height]
         padding = [[0, 0], [0, 0], [0, 0]]
-        crop_box = [width // 2, height // 2, width, height]
+        j = np.copy(joints)
+        print("j", j)
+        print("height", height)
+        print("width", width)
+        box[2], box[3] = max(j[:, 0]), max(j[:, 1])
+        if box[0:2] == [-1, -1]:
+            j[joints == -1] = 1e5
+        box[0], box[1] = min(j[:, 0]), min(j[:, 1])
+        print("box", box)
+        crop_box = [box[0] - int(boxp * (box[2] - box[0])), box[1] - int(boxp * (box[3] - box[1])),
+                    box[2] + int(boxp * (box[2] - box[0])), box[3] + int(boxp * (box[3] - box[1]))]
+        if crop_box[0] < 0: crop_box[0] = 0
+        if crop_box[1] < 0: crop_box[1] = 0
+        if crop_box[2] > width - 1: crop_box[2] = width - 1
+        if crop_box[3] > height - 1: crop_box[3] = height - 1
+        new_h = int(crop_box[3] - crop_box[1])
+        new_w = int(crop_box[2] - crop_box[0])
+        crop_box = [crop_box[0] + new_w // 2, crop_box[1] + new_h // 2, new_w, new_h]
+        print("crop_box", crop_box)
+        if new_h > new_w:
+            # bounds是为了防止以框的中心为原点，以max(new_h, new_w)为直径画框时超出图片的大小，超出的部分即为pad，通过补0完成
+            bounds = (crop_box[0] - new_h // 2, crop_box[0] + new_h // 2)
+            print("bounds", bounds)
+            if bounds[0] < 0:
+                padding[1][0] = abs(bounds[0])
+            if bounds[1] > width - 1:
+                padding[1][1] = abs(width - bounds[1])
+        elif new_h < new_w:
+            bounds = (crop_box[1] - new_w // 2, crop_box[1] + new_w // 2)
+            if bounds[0] < 0:
+                padding[0][0] = abs(bounds[0])
+            if bounds[1] > width - 1:
+                padding[0][1] = abs(height - bounds[1])
+        # 将框的中心左边加上padding[1][0]是因为_crop_img函数不是以（0,0）点为原点，因为图片加了pad之后原点可能会变
+        crop_box[0] += padding[1][0]
+        crop_box[1] += padding[0][0]
         return padding, crop_box
 
     def _crop_img(self, img, padding, crop_box):
@@ -278,6 +318,7 @@ class DataGenClothes(object):
     def _relative_joints(self, box, padding, joints, to_size=64):
         """ Convert Absolute joint coordinates to crop box relative joint coordinates
         (Used to compute Heat Maps)
+        将原始坐标归一化到64范围内
         Args:
             box		: Bounding Box
             padding	: Padding Added to the original Image
@@ -285,8 +326,11 @@ class DataGenClothes(object):
         """
         new_j = np.copy(joints)
         max_l = max(box[2], box[3])
+        # 将以前坐标系中的（0-pad[1][0],0-pad[0][0])点变成新的原点建立新的坐标系，所以新的关键点坐标都加上pad
         new_j = new_j + [padding[1][0], padding[0][0]]
+        # 让关键点的坐标剪切原始框扩展后的正方形框的左上角对应的x，y坐标。即以框的左上角为原点坐标。
         new_j = new_j - [box[0] - max_l // 2, box[1] - max_l // 2]
+        # 将正方形框归一化为大小为64的新框下的坐标
         new_j = new_j * to_size / (max_l + 0.0000001)
         return new_j.astype(np.int32)
 
@@ -559,8 +603,26 @@ if __name__ == '__main__':
     dataset._randomize()
     dataset._create_sets()
     img_name = "Images/blouse/00a2b0f3f13413cd87fa51bb4e25fdfd.jpg"
-    img = dataset.open_img(img_name)
+    img_name_win = "Images\\blouse\\00a20d1cb79af32d0d6a81af8acb2087.jpg"
+    img = dataset.open_img(img_name_win)
     print(img.shape)
+    box = [-1, -1, -1, -1]
+    padd, cbox = dataset._crop_data(img.shape[0], img.shape[1], box, dataset.data_dict[img_name]['joints'], boxp=0.2)
+    # new_j = dataset._relative_joints(cbox, padd, dataset.joints, to_size=64)
+    # hm = dataset._generate_hm(64, 64, new_j, 64, dataset.weight)
+    # img = dataset._crop_img(img, padd, cbox)
+    # img = img.astype(np.uint8)
+    # img = scm.imresize(img, (256, 256))
+    # # img = cv2.resize(img, (256, 256))
+    # img, hm = dataset._augment(img, hm)
+    # hm = np.expand_dims(hm, axis=0)
+    # hm = np.repeat(hm, 4, axis=0)
+
+    # i = 0
     # for k in dataset._aux_generator():
-    #     print(k)
-    # print(",,,,")
+    #     i += 1
+    #     print("...")
+    #     if i == 1: break
+    # # padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2)
+    print("end")
+

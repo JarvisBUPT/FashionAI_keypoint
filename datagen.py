@@ -230,19 +230,19 @@ class DataGenerator():
             y0 = center[1]
         return np.exp(-4 * np.log(2) * ((x - x0) ** 2 + (y - y0) ** 2) / sigma ** 2)
 
-    def _generate_hm(self, height, width, joints, maxlenght, weight):
+    def _generate_hm(self, height, width, joints, maxlength, weight):
         """ Generate a full Heap Map for every joints in an array
         Args:
             height			: Wanted Height for the Heat Map
             width			: Wanted Width for the Heat Map
             joints			: Array of Joints
-            maxlenght		: Lenght of the Bounding Box
+            maxlength		: Length of the Bounding Box
         """
         num_joints = joints.shape[0]
         hm = np.zeros((height, width, num_joints), dtype=np.float32)
         for i in range(num_joints):
             if not (np.array_equal(joints[i], [-1, -1])) and weight[i] == 1:
-                s = int(np.sqrt(maxlenght) * maxlenght * 10 / 4096) + 2
+                s = int(np.sqrt(maxlength) * maxlength * 10 / 4096) + 2
                 hm[:, :, i] = self._makeGaussian(height, width, sigma=s, center=(joints[i, 0], joints[i, 1]))
             else:
                 hm[:, :, i] = np.zeros((height, width))
@@ -251,6 +251,7 @@ class DataGenerator():
     def _crop_data(self, height, width, box, joints, boxp=0.05):
         """ Automatically returns a padding vector and a bounding box given
         the size of the image and a list of joints.
+        该函数只是为了_crop_img函数做准备的并不裁剪数据，即返回padding和crop_box
         Args:
             height		: Original Height
             width		: Original Width
@@ -258,11 +259,14 @@ class DataGenerator():
             joints		: Array of joints
             boxp		: Box percentage (Use 20% to get a good bounding box)
         """
+        # 图片以左上角为（0,0）点，往左为x轴，往下为y轴
+        # 由于img.shape返回值（1280,720,3）第一个参数1280代表高，第二个参数720代表宽，和平常理解的顺序相反，3表示RGB三种通道
+        # 所以padding[0][0]将会在原始图片的上边添加0，padding[1][0]会在图片左边加0。
         padding = [[0, 0], [0, 0], [0, 0]]
         j = np.copy(joints)
-        print("j",j)
-        print("height",height)
-        print("width",width)
+        print("j", j)
+        print("height", height)
+        print("width", width)
         if box[0:2] == [-1, -1]:
             j[joints == -1] = 1e5
             box[0], box[1] = min(j[:, 0]), min(j[:, 1])
@@ -278,6 +282,7 @@ class DataGenerator():
         crop_box = [crop_box[0] + new_w // 2, crop_box[1] + new_h // 2, new_w, new_h]
         print("crop_box", crop_box)
         if new_h > new_w:
+            # bounds是为了防止以框的中心为原点，以max(new_h, new_w)为直径画框时超出图片的大小，超出的部分即为pad，通过补0完成
             bounds = (crop_box[0] - new_h // 2, crop_box[0] + new_h // 2)
             print("bounds", bounds)
             if bounds[0] < 0:
@@ -290,6 +295,7 @@ class DataGenerator():
                 padding[0][0] = abs(bounds[0])
             if bounds[1] > width - 1:
                 padding[0][1] = abs(height - bounds[1])
+        # 将框的中心左边加上padding[1][0]是因为_crop_img函数不是以（0,0）点为原点，因为图片加了pad之后原点可能会变
         crop_box[0] += padding[1][0]
         crop_box[1] += padding[0][0]
         return padding, crop_box
@@ -327,19 +333,26 @@ class DataGenerator():
     def _relative_joints(self, box, padding, joints, to_size=64):
         """ Convert Absolute joint coordinates to crop box relative joint coordinates
         (Used to compute Heat Maps)
+        将原始坐标归一化到64范围内
         Args:
             box		: Bounding Box
             padding	: Padding Added to the original Image
             to_size	: Heat Map wanted Size
         """
         print("_relative_joints")
-        print("box",box,padding)
+        print("box", box, padding)
         new_j = np.copy(joints)
         max_l = max(box[2], box[3])
         print("max_l", max_l)
+        # 将以前坐标系中的（0-pad[1][0],0-pad[0][0])点变成新的原点建立新的坐标系，所以新的关键点坐标都加上pad
         new_j = new_j + [padding[1][0], padding[0][0]]
+        print("new_j1", new_j)
+        # 让关键点的坐标剪切原始框扩展后的正方形框的左上角对应的x，y坐标。即以框的左上角为原点坐标。
         new_j = new_j - [box[0] - max_l // 2, box[1] - max_l // 2]
+        print("new_j2", new_j)
+        # 将正方形框归一化为大小为64的新框下的坐标
         new_j = new_j * to_size / (max_l + 0.0000001)
+        print("new_j3", new_j)
         return new_j.astype(np.int32)
 
     def _augment(self, img, hm, max_rotation=30):
@@ -436,12 +449,17 @@ class DataGenerator():
                     padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2)
                     new_j = self._relative_joints(cbox, padd, joints, to_size=64)
                     hm = self._generate_hm(64, 64, new_j, 64, weight)
+                    print("hm.shape", hm.shape)
                     img = self._crop_img(img, padd, cbox)
                     img = img.astype(np.uint8)
+                    print("preimg", img.shape)
                     img = scm.imresize(img, (256, 256))
+                    print("resizeimg", img.shape)
                     img, hm = self._augment(img, hm)
                     hm = np.expand_dims(hm, axis=0)
+                    print("hm expand_dims", hm.shape)
                     hm = np.repeat(hm, stacks, axis=0)
+                    print("hm repeat", hm.shape)
                     if normalize:
                         train_img[i] = img.astype(np.float32) / 255
                     else:
@@ -450,6 +468,9 @@ class DataGenerator():
                     i = i + 1
                 except:
                     print('error file: ', name)
+                print("train_img", train_img.shape)
+                print("train_gtmap", train_gtmap.shape)
+                print("train_weights", train_weights.shape)
             yield train_img, train_gtmap, train_weights
 
     def generator(self, batchSize=16, stacks=4, norm=True, sample='train'):
@@ -596,15 +617,16 @@ if __name__ == '__main__':
         config_file = 'config_test.cfg'
     params = process_config(config_file)
     print(params)
-    dataset = DataGenerator(params['joint_list'], params['img_directory'], params['training_txt_file'],
+    dataset = DataGenerator(params['joint_list'], params['img_directory'], "dataset_test.txt",
                             remove_joints=params['remove_joints'])
     dataset._create_train_table()
     dataset._randomize()
     dataset._create_sets()
-    i=0
+    name = '000033016.jpgA'
+    img = dataset.open_img(name)
+    i = 0
     for k in dataset._aux_generator():
-        i+=1
+        i += 1
         print("...")
-        if i==1: break
+        if i == 1: break
     print("end")
-
