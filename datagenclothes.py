@@ -561,6 +561,6 @@ if __name__ == '__main__':
     img_name = "Images/blouse/00a2b0f3f13413cd87fa51bb4e25fdfd.jpg"
     img = dataset.open_img(img_name)
     print(img.shape)
-    for k in dataset._aux_generator():
-        print(k)
-    print(",,,,")
+    # for k in dataset._aux_generator():
+    #     print(k)
+    # print(",,,,")

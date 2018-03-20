@@ -1,53 +1,24 @@
 # -*- coding: utf-8 -*-
-"""
-Deep Human Pose Estimation
-
-Project by Walid Benbihi
-MSc Individual Project
-Imperial College
-Created on Mon Jul 17 15:50:43 2017
-
-@author: Walid Benbihi
-@mail : w.benbihi(at)gmail.com
-@github : https://github.com/wbenbihi/hourglasstensorlfow/
-
-Abstract:
-    This python code creates a Stacked Hourglass Model
-    (Credits : A.Newell et al.)
-    (Paper : https://arxiv.org/abs/1603.06937)
-
-    Code translated from 'anewell' github
-    Torch7(LUA) --> TensorFlow(PYTHON)
-    (Code : https://github.com/anewell/pose-hg-train)
-
-    Modification are made and explained in the report
-    Goal : Achieve Real Time detection (Webcam)
-    ----- Modifications made to obtain faster results (trade off speed/accuracy)
-
-    This work is free of use, please cite the author if you use it!
-
-"""
-
 import sys
 import os
 
 sys.path.append('./')
 
-from hourglass_tiny import HourglassModel
+from model_hourglass import HourglassModelForClothes
 from time import time, clock, sleep
 import numpy as np
 import tensorflow as tf
 import scipy.io
-from train_launcher import process_config
+from train_clothes import process_config_clothes
 import cv2
 # from yolo_tiny_net import YoloTinyNet
 from yolo_net import YOLONet
-from datagen import DataGenerator
+from datagenclothes import DataGenClothes
 import config as cfg
 import threading
 
 
-class PredictProcessor():
+class PredictClothes():
     """
     PredictProcessor class: Give the tools to open and use a trained model for
     prediction.
@@ -64,7 +35,7 @@ class PredictProcessor():
             config_dict	: config_dict
         """
         self.params = config_dict
-        self.HG = HourglassModel(nFeat=self.params['nfeats'], nStack=self.params['nstacks'],
+        self.HG = HourglassModelForClothes(nFeat=self.params['nfeats'], nStack=self.params['nstacks'],
                                  nModules=self.params['nmodules'], nLow=self.params['nlow'],
                                  outputDim=self.params['num_joints'],
                                  batch_size=self.params['batch_size'], drop_rate=self.params['dropout_rate'],
@@ -1329,21 +1300,19 @@ if __name__ == '__main__':
     print('--Parsing Config File')
     name = os.name
     if name == 'nt':
-        config_file = 'config_win.cfg'
-        model = 'hg_refined_200'
+        config_file = 'config_clothes_win.cfg'
     else:
-        config_file = 'config_test.cfg'
-        model = 'hg_test_02_106'
+        config_file = 'config_clothes.cfg'
+
     t = time()
-    print(config_file, model)
-    params = process_config(config_file)
+    params = process_config_clothes(config_file)
     print(params)
-    predict = PredictProcessor(params)
+    predict = PredictClothes(params)
     predict.color_palette()
     predict.LINKS_JOINTS()
     predict.model_init()
     print("load model ...")
-    predict.load_model(load=model)
+    predict.load_model(load='hg_clothes_001_200')
     print("load model end")
     predict.yolo_init()
     predict.restore_yolo(load='YOLO_small.ckpt')
