@@ -278,7 +278,8 @@ if __name__ == '__main__':
     f.close()
     writer = csv.writer(csvresult)
     writer.writerow(firstline)
-    with open(params['test_csv_file'], "r") as f:
+    # with open(params['test_csv_file'], "r") as f:
+    with open('test_1.csv', "r") as f:
         for value in islice(f, 1, None):  # 读取去掉第一行之后的数据
             value = value.strip().split(',')
             print(value)
