@@ -274,7 +274,7 @@ if __name__ == '__main__':
     print(images.__len__())
     csvresult = open('result.csv', 'w', newline='')  # 设置newline，否则两行之间会空一行
     f = open(params['training_txt_file'], 'r')
-    firstline = f.readline()
+    firstline = f.readline().strip().split(',')
     f.close()
     writer = csv.writer(csvresult)
     writer.writerow(firstline)
@@ -285,8 +285,11 @@ if __name__ == '__main__':
             print(value)
             img_name = value[0]
             img_category = value[1]
+            print(img_name, params['img_test_dir'])
             try:
-                img = open_testimg(img_name, params['img_test_dir'])
+                # img = open_testimg(img_name, params['img_test_dir'])
+                img = cv2.imread(os.path.join(params['img_test_dir'], img_name))
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 height = img.shape[0]
                 width = img.shape[1]
                 img = cv2.resize(img, (256, 256))
