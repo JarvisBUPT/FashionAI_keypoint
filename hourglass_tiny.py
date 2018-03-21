@@ -330,7 +330,7 @@ l           logdir_train       : Directory to Train Log file
             print('  Relative Improvement: ' + str((self.resume['err'][-1] - self.resume['err'][0]) * 100) + '%')
             print('  Training Time: ' + str(datetime.timedelta(seconds=time.time() - startTime)))
 
-    def record_training(self,  ):
+    def record_training(self, record):
         """ Record Training Data and Export them in CSV file
         Args:
             record		: record dictionnary

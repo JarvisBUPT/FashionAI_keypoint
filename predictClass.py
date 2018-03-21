@@ -215,7 +215,7 @@ class PredictProcessor():
         """
         with self.graph.as_default():
             with tf.name_scope('prediction'):
-                self.HG.pred_sigmoid = tf.nn.sigmoid(self.HG.output[:, self.HG.nStack - 1],
+                self.pred_sigmoid = tf.nn.sigmoid(self.HG.output[:, self.HG.nStack - 1],
                                                      name='sigmoid_final_prediction')
                 self.HG.pred_final = self.HG.output[:, self.HG.nStack - 1]
                 self.HG.joint_tensor = self._create_joint_tensor(self.HG.output[0], name='joint_tensor')
@@ -261,7 +261,7 @@ class PredictProcessor():
             t = time()
         if img.shape == (256, 256, 3):
             if sess is None:
-                out = self.HG.Session.run(self.HG.pred_sigmoid, feed_dict={self.HG.img: np.expand_dims(img, axis=0)})
+                out = self.HG.Session.run(self.pred_sigmoid, feed_dict={self.HG.img: np.expand_dims(img, axis=0)})
             else:
                 out = sess.run(self.HG.pred_sigmoid, feed_dict={self.HG.img: np.expand_dims(img, axis=0)})
         else:
@@ -314,8 +314,8 @@ class PredictProcessor():
 
     def joints_pred_numpy(self, img, coord='hm', thresh=0.2, sess=None):
         """ Create Tensor for joint position prediction
-        NON TRAINABLE
-        TO CALL AFTER GENERATING GRAPH
+        non trainable
+        to call after generating graph
         Notes:
             Not more efficient than Numpy, prefer Numpy for such operation!
         """

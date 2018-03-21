@@ -597,7 +597,7 @@ if __name__ == '__main__':
     print(params)
     # dataset = DataGenClothes(params['joint_list'], params['img_directory'], params['training_txt_file'],
     #                          params['category'])
-    dataset = DataGenClothes(params['joint_list'], params['img_directory'], 'test.csv',
+    dataset = DataGenClothes(params['joint_list'], params['img_directory'], 'train_1.csv',
                              params['category'])
     dataset._create_train_table()
     dataset._randomize()
