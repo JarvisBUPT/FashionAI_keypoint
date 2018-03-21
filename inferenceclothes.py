@@ -286,23 +286,23 @@ if __name__ == '__main__':
             img_name = value[0]
             img_category = value[1]
             print(img_name, params['img_test_dir'])
-            try:
-                # img = open_testimg(img_name, params['img_test_dir'])
-                img = cv2.imread(os.path.join(params['img_test_dir'], img_name))
-                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-                height = img.shape[0]
-                width = img.shape[1]
-                img = cv2.resize(img, (256, 256))
-                print(img.shape)
-                # predjoints = inf.predictJoints(img)
-                predjoints = np.arange(48).reshape((24, 2))
-                joints = []
-                joints.append(img_name)
-                joints.append(img_category)
-                for i in predjoints.shape[0]:
-                    joints.append(str(predjoints[i][1]) + '_' + str(predjoints[i][0]) + '_1')
-                print(joints)
-                writer.writerow(joints)
-            except:
-                print("Not find the image:", img_name)
+            # try:
+            # img = open_testimg(img_name, params['img_test_dir'])
+            img = cv2.imread(os.path.join(params['img_test_dir'], img_name))
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            height = img.shape[0]
+            width = img.shape[1]
+            img = cv2.resize(img, (256, 256))
+            print(img.shape)
+            # predjoints = inf.predictJoints(img)
+            predjoints = np.arange(48).reshape((24, 2))
+            joints = []
+            joints.append(img_name)
+            joints.append(img_category)
+            for i in predjoints.shape[0]:
+                joints.append(str(predjoints[i][1]) + '_' + str(predjoints[i][0]) + '_1')
+            print(joints)
+            writer.writerow(joints)
+            # except:
+            #     print("Not find the image:", img_name)
     csvresult.close()
