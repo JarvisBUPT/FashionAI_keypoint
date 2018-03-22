@@ -268,8 +268,8 @@ if __name__ == '__main__':
         config_file = 'config_test.cfg'
     params = process_config(config_file)
     print(params)
-    inf = Inference('config_test.cfg', 'hg_test_01_200')
-    dataset = DataGenerator(params['joint_list'], params['img_directory_win'], params['training_txt_file'],
+    inf = Inference('config_test.cfg', 'hg_test_02_106')
+    dataset = DataGenerator(params['joint_list'], params['img_directory'], params['training_txt_file'],
                             remove_joints=params['remove_joints'])
     img = dataset.open_img('000033016.jpg')
     img1 = cv2.resize(img, (256, 256))
