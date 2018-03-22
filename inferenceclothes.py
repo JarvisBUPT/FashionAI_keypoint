@@ -261,7 +261,7 @@ if __name__ == '__main__':
         config_file = 'config_clothes.cfg'
     params = process_config_clothes(config_file)
     print(params)
-    # inf = InferenceClothes(config_file, 'hg_clothes_001_200')
+    inf = InferenceClothes(config_file, 'hg_clothes_001_200')
 
     img_test_dir = params['img_test_dir']
     img_dir_temp = os.path.join(img_test_dir, "Images")
@@ -294,7 +294,7 @@ if __name__ == '__main__':
             width = img.shape[1]
             img = cv2.resize(img, (256, 256))
             print(img.shape)
-            # predjoints = inf.predictJoints(img)
+            predjoints = inf.predictJoints(img)
             predjoints = np.arange(48).reshape((24, 2))
             joints = []
             joints.append(img_name)
