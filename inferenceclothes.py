@@ -262,7 +262,6 @@ if __name__ == '__main__':
     params = process_config_clothes(config_file)
     print(params)
     inf = InferenceClothes(config_file, 'hg_clothes_001_200')
-
     img_test_dir = params['img_test_dir']
     img_dir_temp = os.path.join(img_test_dir, "Images")
     category = params['category']
@@ -278,8 +277,8 @@ if __name__ == '__main__':
     f.close()
     writer = csv.writer(csvresult)
     writer.writerow(firstline)
-    # with open(params['test_csv_file'], "r") as f:
-    with open('test_1.csv', "r") as f:
+    with open(params['test_csv_file'], "r") as f:
+    # with open('test_1.csv', "r") as f:
         for value in islice(f, 1, None):  # 读取去掉第一行之后的数据
             value = value.strip().split(',')
             print(value)
@@ -292,15 +291,16 @@ if __name__ == '__main__':
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             height = img.shape[0]
             width = img.shape[1]
+            print('height',height,'width',width)
             img = cv2.resize(img, (256, 256))
             print(img.shape)
             predjoints = inf.predictJoints(img)
-            predjoints = np.arange(48).reshape((24, 2))
+            # predjoints = np.arange(48).reshape((24, 2))
             joints = []
             joints.append(img_name)
             joints.append(img_category)
-            for i in predjoints.shape[0]:
-                joints.append(str(predjoints[i][1]) + '_' + str(predjoints[i][0]) + '_1')
+            for i in range(predjoints.shape[0]):
+                joints.append(str(int(predjoints[i][1]/256*width)) + '_' + str(int(predjoints[i][0]/256*height)) + '_1')
             print(joints)
             writer.writerow(joints)
             # except:
