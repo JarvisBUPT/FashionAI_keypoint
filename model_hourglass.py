@@ -48,7 +48,7 @@ l           logdir_train       : Directory to Train Log file
                       'cuff_left_out', 'cuff_right_in', 'cuff_right_out', 'top_hem_left', 'top_hem_right',
                       'waistband_left', 'waistband_right', 'hemline_left', 'hemline_right', 'crotch',
                       'bottom_left_in', 'bottom_left_out', 'bottom_right_in', 'bottom_right_out']
-        
+
         self.nStack = nStack
         self.nFeat = nFeat
         self.nModules = nModules
@@ -230,7 +230,7 @@ l           logdir_train       : Directory to Train Log file
                 epochstartTime = time.time()
                 avg_cost = 0.
                 cost = 0.
-                print('Epoch :' + str(epoch) + '/' + str(nEpochs) + '\n')
+                print('Epoch :' + str(epoch + 1) + '/' + str(nEpochs) + '\n')
                 # Training Set
                 for i in range(epochSize):
                     # DISPLAY PROGRESS BAR
