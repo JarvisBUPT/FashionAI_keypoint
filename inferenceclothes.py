@@ -235,7 +235,7 @@ class InferenceClothes():
         cam.release()
 
 
-def predictallimage(params, category=None, model='hg_clothes_001_200'):
+def predictallimage(params, category=None, model='hg_clothes_002_50'):
     """ predict all test image,write into result.csv
     Args:
         params:
@@ -298,5 +298,5 @@ if __name__ == '__main__':
     params = process_config_clothes(config_file)
     print(params)
     starttime = time()
-    predictallimage()
+    predictallimage(params,params['category'])
     print("load model and test images in", time() - starttime, " sec")

@@ -43,7 +43,7 @@ class DataGenClothes(object):
 
    """
 
-    def __init__(self, joints_list=None, img_dir=None, train_data_file=None, category=None):
+    def __init__(self, joints_list=None, img_dir=None, train_data_file=None, category=None, cat=None):
         """ Initializer
         Args:
             joints_list			: List of joints condsidered
@@ -76,7 +76,8 @@ class DataGenClothes(object):
             self.images.extend(os.listdir(img_dir_cat))
 
         self.category = category
-        print(self.images)
+        self.cat = cat
+        # print(self.images)
         print(self.images.__len__())
 
     # --------------------Generator Initialization Methods ---------------------
@@ -100,31 +101,32 @@ class DataGenClothes(object):
                     break
                 line = value.split(',')
                 name = line[0]
-                self.train_table.append(name)
                 category = line[1]
-                keypoints = list(line[2:])  # 只截取关键点部位的坐标，x_y_visible,
-                box = list([-1, -1, -1, -1])
-                isvisible = []  # 每个关键点的可见度
-                # joints = [map(int, cord.split('_')) for cord in keypoints]
-                for cord in keypoints:
-                    x, y, visible = cord.split('_')
-                    if visible == '0':
-                        joint_.append(-1)
-                        joint_.append(-1)
+                if category == self.cat:
+                    self.train_table.append(name)
+                    keypoints = list(line[2:])  # 只截取关键点部位的坐标，x_y_visible,
+                    box = list([-1, -1, -1, -1])
+                    isvisible = []  # 每个关键点的可见度
+                    # joints = [map(int, cord.split('_')) for cord in keypoints]
+                    for cord in keypoints:
+                        x, y, visible = cord.split('_')
+                        if visible == '0':
+                            joint_.append(-1)
+                            joint_.append(-1)
+                        else:
+                            joint_.append(int(x))
+                            joint_.append(int(y))
+                        isvisible.append(int(visible))
+                    if joint_ == [-1] * len(joint_):
+                        self.no_intel.append(name)
                     else:
-                        joint_.append(int(x))
-                        joint_.append(int(y))
-                    isvisible.append(int(visible))
-                if joint_ == [-1] * len(joint_):
-                    self.no_intel.append(name)
-                else:
-                    joints = np.reshape(joint_, (-1, 2))
-                    w = [1] * joints.shape[0]
-                    for i in range(joints.shape[0]):
-                        if np.array_equal(joints[i], [-1, -1]):
-                            w[i] = 0
-                    self.data_dict[name] = {'category': category, 'box': box, 'joints': joints, 'weights': w,
-                                            'visible': isvisible}
+                        joints = np.reshape(joint_, (-1, 2))
+                        w = [1] * joints.shape[0]
+                        for i in range(joints.shape[0]):
+                            if np.array_equal(joints[i], [-1, -1]):
+                                w[i] = 0
+                        self.data_dict[name] = {'category': category, 'box': box, 'joints': joints, 'weights': w,
+                                                'visible': isvisible}
         print("data_dict totals :", len(self.data_dict))
         print("_create_train_table %f  s" % (time.time() - start_time))
 
@@ -248,14 +250,10 @@ class DataGenClothes(object):
         # crop_box = [width // 2, height // 2, width, height]
         padding = [[0, 0], [0, 0], [0, 0]]
         j = np.copy(joints)
-        print("j", j)
-        print("height", height)
-        print("width", width)
         box[2], box[3] = max(j[:, 0]), max(j[:, 1])
         if box[0:2] == [-1, -1]:
             j[joints == -1] = 1e5
         box[0], box[1] = min(j[:, 0]), min(j[:, 1])
-        print("box", box)
         crop_box = [box[0] - int(boxp * (box[2] - box[0])), box[1] - int(boxp * (box[3] - box[1])),
                     box[2] + int(boxp * (box[2] - box[0])), box[3] + int(boxp * (box[3] - box[1]))]
         if crop_box[0] < 0: crop_box[0] = 0
@@ -265,11 +263,9 @@ class DataGenClothes(object):
         new_h = int(crop_box[3] - crop_box[1])
         new_w = int(crop_box[2] - crop_box[0])
         crop_box = [crop_box[0] + new_w // 2, crop_box[1] + new_h // 2, new_w, new_h]
-        print("crop_box", crop_box)
         if new_h > new_w:
             # bounds是为了防止以框的中心为原点，以max(new_h, new_w)为直径画框时超出图片的大小，超出的部分即为pad，通过补0完成
             bounds = (crop_box[0] - new_h // 2, crop_box[0] + new_h // 2)
-            print("bounds", bounds)
             if bounds[0] < 0:
                 padding[1][0] = abs(bounds[0])
             if bounds[1] > width - 1:
@@ -625,4 +621,3 @@ if __name__ == '__main__':
     #     if i == 1: break
     # # padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2)
     print("end")
-
