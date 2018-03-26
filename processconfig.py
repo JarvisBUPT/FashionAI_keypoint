@@ -21,6 +21,7 @@ def process_config_clothes():
     else:
         conf_file = 'config_clothes.cfg'
     params = {}
+    print(conf_file)
     config = configparser.ConfigParser()
     config.read(conf_file)
     for section in config.sections():

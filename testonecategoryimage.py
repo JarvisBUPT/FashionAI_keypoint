@@ -110,5 +110,7 @@ if __name__ == '__main__':
         category = params['category']
         cat = ''
     print('categoty =', category)
-    model = params['name'] + cat + "_" + epoch
-    predict_one_category(config_file, category, model)
+    #model = params['name'] + cat + "_" + epoch
+    model = params['name']  + "_" + epoch
+    print(params)
+    predict_one_category(params, category, model)
