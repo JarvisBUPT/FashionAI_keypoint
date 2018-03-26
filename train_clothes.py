@@ -43,7 +43,8 @@ if __name__ == '__main__':
         category = params['category']
         cat = ''
     print('categoty =', category, cat)
-    dataset = DataGenClothes(params['joint_list'], params['img_directory'], params['training_txt_file'],
+	traincsv = "split_"+cat+".csv" 
+    dataset = DataGenClothes(params['joint_list'], params['img_directory'], traincsv,
                              category, cat)
     dataset._create_train_table()
     dataset._randomize()
@@ -53,9 +54,8 @@ if __name__ == '__main__':
         num_joints = 24
     else:
         num_joints = len(params[cat])
-    print(num_joints)
     model = HourglassModelForClothes(nFeat=params['nfeats'], nStack=params['nstacks'], nModules=params['nmodules'],
-                                     nLow=params['nlow'], outputDim=params['num_joints'],
+                                     nLow=params['nlow'], outputDim=num_joints,
                                      batch_size=params['batch_size'],
                                      attention=params['mcam'], training=True, drop_rate=params['dropout_rate'],
                                      lear_rate=params['learning_rate'], decay=params['learning_rate_decay'],
