@@ -12,9 +12,6 @@ import os
 import sys
 from processconfig import process_config_clothes
 
-
-
-
 if __name__ == '__main__':
     print('--Parsing Config File')
     argv = sys.argv
@@ -43,17 +40,26 @@ if __name__ == '__main__':
         category = params['category']
         cat = ''
     print('categoty =', category, cat)
-	traincsv = "split_"+cat+".csv" 
-    dataset = DataGenClothes(params['joint_list'], params['img_directory'], traincsv,
+
+    name = params['name'] + cat
+    if cat == '':
+        num_joints = 24
+    else:
+        num_joints = len(params[cat])
+    joint_list = params['joint_list']
+    joints = []
+    if cat == '':
+        joints = joint_list
+    else:
+        for i, v in enumerate(joint_list):
+            if i in params[cat]:
+                joints.append(v)
+    print(joints)
+    dataset = DataGenClothes(joints, params['img_directory'], "split_" + cat + ".csv",
                              category, cat)
     dataset._create_train_table()
     dataset._randomize()
     dataset._create_sets()
-    name = params['name'] + cat
-    if cat =='':
-        num_joints = 24
-    else:
-        num_joints = len(params[cat])
     model = HourglassModelForClothes(nFeat=params['nfeats'], nStack=params['nstacks'], nModules=params['nmodules'],
                                      nLow=params['nlow'], outputDim=num_joints,
                                      batch_size=params['batch_size'],
@@ -61,7 +67,7 @@ if __name__ == '__main__':
                                      lear_rate=params['learning_rate'], decay=params['learning_rate_decay'],
                                      decay_step=params['decay_step'], dataset=dataset, name=name,
                                      logdir_train=params['log_dir_train'], logdir_test=params['log_dir_test'],
-                                     tiny=params['tiny'], w_loss=params['weighted_loss'], joints=params['joint_list'],
+                                     tiny=params['tiny'], w_loss=params['weighted_loss'], joints=joints,
                                      modif=False)
     model.generate_model()
     model.training_init(nEpochs=params['nepochs'], epochSize=params['epoch_size'], saveStep=params['saver_step'],
