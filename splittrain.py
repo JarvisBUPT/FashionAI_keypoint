@@ -20,11 +20,11 @@ if __name__ == '__main__':
     dress = params['dress']
 
     print(dress)
-    fblouse = open("trainblouse.csv", 'w', newline='')
-    fdress = open("traindress.csv", 'w', newline='')
-    foutwear = open("trainoutwear.csv", 'w', newline='')
-    fskirt = open("trainskirt.csv", 'w', newline='')
-    ftrousers = open("traintrousers.csv", 'w', newline='')
+    fblouse = open("splitblouse.csv", 'w', newline='')
+    fdress = open("splitdress.csv", 'w', newline='')
+    foutwear = open("splitoutwear.csv", 'w', newline='')
+    fskirt = open("splitskirt.csv", 'w', newline='')
+    ftrousers = open("splittrousers.csv", 'w', newline='')
 
     writerblouse = csv.writer(fblouse)
     writerdress = csv.writer(fdress)
@@ -59,7 +59,7 @@ if __name__ == '__main__':
                 writerblouse.writerow(joint_)
             if cat == 'dress':
                 for i, cord in enumerate(keypoints):
-                    if i in outwear:
+                    if i in dress:
                         x, y, visible = cord.split('_')
                         if visible == '0':
                             joint_.append(-1)
@@ -81,7 +81,7 @@ if __name__ == '__main__':
                 writeroutwear.writerow(joint_)
             if cat == 'skirt':
                 for i, cord in enumerate(keypoints):
-                    if i in outwear:
+                    if i in skirt:
                         x, y, visible = cord.split('_')
                         if visible == '0':
                             joint_.append(-1)
@@ -92,7 +92,7 @@ if __name__ == '__main__':
                 writerskirt.writerow(joint_)
             if cat == 'trousers':
                 for i, cord in enumerate(keypoints):
-                    if i in outwear:
+                    if i in trousers:
                         x, y, visible = cord.split('_')
                         if visible == '0':
                             joint_.append(-1)
