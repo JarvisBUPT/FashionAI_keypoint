@@ -22,7 +22,7 @@ import numpy as np
 from inferenceclothes import InferenceClothes
 
 
-def predict_one_category(config_file, category, model='hg_clothes_001_200', ):
+def predict_one_category(config_file, category, model='hg_clothes_001_199', ):
     """ predict all test image,write into result.csv
         Args:
             config_file : the model  training config
@@ -35,7 +35,7 @@ def predict_one_category(config_file, category, model='hg_clothes_001_200', ):
      'hemline_right18', 'crotch19', 'bottom_left_in20', 'bottom_left_out21', 'bottom_right_in22', 'bottom_right_out23']
         """
 
-    blouse = [0, 1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, ]
+    blouse = [0, 1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14]
     outwear = [0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
     trousers = [15, 16, 19, 20, 21, 22, 23]
     skirt = [15, 16, 17, 18]
@@ -43,14 +43,14 @@ def predict_one_category(config_file, category, model='hg_clothes_001_200', ):
     cat = category.pop()
     if cat not in ['blouse', 'dress', 'outwear', 'skirt', 'trousers']:
         raise ValueError('category not blouse,dress,outwear,skirt,trousers')
-    # inf = InferenceClothes(config_file, model)
+    inf = InferenceClothes(config_file, model)
     params = process_config_clothes(config_file)
     print(params)
     csvresult = open('result' + cat + '.csv', 'w', newline='')  # 设置newline，否则两行之间会空一行
     writer = csv.writer(csvresult)
     starttime = time()
-    # with open(params['test_csv_file'], "r") as f:
-    with open('test_1.csv', "r") as f:
+    with open(params['test_csv_file'], "r") as f:
+        # with open('test_1.csv', "r") as f:
         for value in islice(f, 1, None):  # 读取去掉第一行之后的数据
             value = value.strip().split(',')
             img_name = value[0]
@@ -64,8 +64,8 @@ def predict_one_category(config_file, category, model='hg_clothes_001_200', ):
                     # print('height',height,'width',width)
                     img = cv2.resize(img, (256, 256))
                     # print(img.shape)
-                    # predjoints = inf.predictJoints(img)
-                    predjoints = np.arange(48).reshape((24, 2))
+                    predjoints = inf.predictJoints(img)
+                    # predjoints = np.arange(48).reshape((24, 2))
                     joints = []
                     joints.append(img_name)
                     joints.append(img_category)
@@ -73,7 +73,7 @@ def predict_one_category(config_file, category, model='hg_clothes_001_200', ):
                         joints.append(
                             str(int(predjoints[i][1] / 256 * width)) + '_' + str(
                                 int(predjoints[i][0] / 256 * height)) + '_1')
-                    print(joints)
+                    # print(joints)
                     writer.writerow(joints)
                 except:
                     print("Not find the image:", img_name)
@@ -83,11 +83,13 @@ def predict_one_category(config_file, category, model='hg_clothes_001_200', ):
 
 if __name__ == '__main__':
     argv = sys.argv
-    if len(argv) == 2:
+    if len(argv) == 3:
         c = argv[1]
+        epoch = argv[2]
     else:
-        raise ValueError('need a parameter in b is blouse,d is dress,o is outwear,s is skirt,t is trousers\n'
-                         'for example: python testonecategoryimage.py b')
+        raise ValueError('need two parameter or one.One is in b is blouse,d is dress,o is outwear,'
+                         's is skirt,t is trousers. Two is the number of epoch\n'
+                         'for example: python testonecategoryimage.py b 101 or python testonecategoryimage.py b ')
     name = os.name
     if name == 'nt':
         config_file = 'config_clothes_win.cfg'
@@ -110,6 +112,9 @@ if __name__ == '__main__':
     elif c == 't':
         category.append('trousers')
         cat = 'trousers'
+    elif c == 'a':
+        category = params['category']
+        cat = ''
     print('categoty =', category)
-    model = params['name'] + cat
+    model = params['name'] + cat + "_" + epoch
     predict_one_category(config_file, category, model)
