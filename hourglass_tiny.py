@@ -88,8 +88,8 @@ l           logdir_train       : Directory to Train Log file
         self.nLow = nLow
         self.modif = modif
         self.dataset = dataset
-        self.cpu = '/cpu:0'
-        self.gpu = '/gpu:0'
+        self.cpu = None
+        self.gpu = None
         self.logdir_train = logdir_train
         self.logdir_test = logdir_test
         self.joints = joints
@@ -257,7 +257,7 @@ l           logdir_train       : Directory to Train Log file
                 epochstartTime = time.time()
                 avg_cost = 0.
                 cost = 0.
-                print('Epoch :' + str(epoch) + '/' + str(nEpochs) + '\n')
+                print('Epoch :' + str(epoch + 1) + '/' + str(nEpochs) + '\n')
                 # Training Set
                 for i in range(epochSize):
                     # DISPLAY PROGRESS BAR

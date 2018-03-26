@@ -9,6 +9,7 @@ from datagen import DataGenerator
 from datagenclothes import DataGenClothes
 from model_hourglass import HourglassModelForClothes
 import os
+import sys
 
 
 def process_config_clothes(conf_file):
@@ -38,26 +39,49 @@ def process_config_clothes(conf_file):
 
 if __name__ == '__main__':
     print('--Parsing Config File')
+    argv = sys.argv
+    if len(argv) == 2:
+        c = argv[1]
+    else:
+        c = ''
     name = os.name
     if name == 'nt':
         config_file = 'config_clothes_win.cfg'
     else:
         config_file = 'config_clothes.cfg'
     params = process_config_clothes(config_file)
-    print("params =", params)
-    print('--Creating Dataset')
+    category = []
+    if c == 'b':
+        category.append('blouse')
+        cat = 'blouse'
+    elif c == 'd':
+        category.append('dress')
+        cat = 'dress'
+    elif c == 'o':
+        category.append('outwear')
+        cat = 'outwear'
+    elif c == 's':
+        category.append('skirt')
+        cat = 'skirt'
+    elif c == 't':
+        category.append('trousers')
+        cat = 'trousers'
+    else:
+        category = params['category']
+        cat = ''
+    print('categoty =', category, cat)
     dataset = DataGenClothes(params['joint_list'], params['img_directory'], params['training_txt_file'],
-                             params['category'])
+                             category, cat)
     dataset._create_train_table()
     dataset._randomize()
     dataset._create_sets()
-
+    name = params['name'] + cat
     model = HourglassModelForClothes(nFeat=params['nfeats'], nStack=params['nstacks'], nModules=params['nmodules'],
                                      nLow=params['nlow'], outputDim=params['num_joints'],
                                      batch_size=params['batch_size'],
                                      attention=params['mcam'], training=True, drop_rate=params['dropout_rate'],
                                      lear_rate=params['learning_rate'], decay=params['learning_rate_decay'],
-                                     decay_step=params['decay_step'], dataset=dataset, name=params['name'],
+                                     decay_step=params['decay_step'], dataset=dataset, name=name,
                                      logdir_train=params['log_dir_train'], logdir_test=params['log_dir_test'],
                                      tiny=params['tiny'], w_loss=params['weighted_loss'], joints=params['joint_list'],
                                      modif=False)
