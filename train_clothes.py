@@ -49,6 +49,11 @@ if __name__ == '__main__':
     dataset._randomize()
     dataset._create_sets()
     name = params['name'] + cat
+    if cat =='':
+        num_joints = 24
+    else:
+        num_joints = len(params[cat])
+    print(num_joints)
     model = HourglassModelForClothes(nFeat=params['nfeats'], nStack=params['nstacks'], nModules=params['nmodules'],
                                      nLow=params['nlow'], outputDim=params['num_joints'],
                                      batch_size=params['batch_size'],
