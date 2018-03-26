@@ -9,7 +9,7 @@ from time import time, clock, sleep
 import numpy as np
 import tensorflow as tf
 import scipy.io
-from train_clothes import process_config_clothes
+from processconfig import process_config_clothes
 import cv2
 # from yolo_tiny_net import YoloTinyNet
 from yolo_net import YOLONet
@@ -1298,14 +1298,8 @@ class PredictClothes():
 
 if __name__ == '__main__':
     print('--Parsing Config File')
-    name = os.name
-    if name == 'nt':
-        config_file = 'config_clothes_win.cfg'
-    else:
-        config_file = 'config_clothes.cfg'
-
     t = time()
-    params = process_config_clothes(config_file)
+    params = process_config_clothes()
     print(params)
     predict = PredictClothes(params)
     predict.color_palette()

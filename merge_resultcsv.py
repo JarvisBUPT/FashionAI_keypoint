@@ -1,14 +1,9 @@
-from train_clothes import process_config_clothes
+from processconfig import process_config_clothes
 import os
 import csv
 
 if __name__ == '__main__':
-    name = os.name
-    if name == 'nt':
-        config_file = 'config_clothes_win.cfg'
-    else:
-        config_file = 'config_clothes.cfg'
-    params = process_config_clothes(config_file)
+    params = process_config_clothes()
     f = open(params['training_txt_file'], 'r')
     firstline = f.readline().strip().split(',')
     f.close()

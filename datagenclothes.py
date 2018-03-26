@@ -561,8 +561,8 @@ class DataGenClothes(object):
                 joints = self.data_dict[sample]['joints']
                 box = self.data_dict[sample]['box']
                 w = self.data_dict[sample]['weights']
-                category = self.data_dict[name]['category']
-                visible = self.data_dict[name]['visible']
+                category = self.data_dict[sample]['category']
+                visible = self.data_dict[sample]['visible']
                 img = self.open_img(sample)
                 padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2)
                 new_j = self._relative_joints(cbox, padd, joints, to_size=256)
@@ -581,15 +581,10 @@ class DataGenClothes(object):
 
 
 if __name__ == '__main__':
-    from train_clothes import process_config_clothes
+    from processconfig import process_config_clothes
 
     print('--Parsing Config File')
-    name = os.name
-    if name == 'nt':
-        config_file = 'config_clothes_win.cfg'
-    else:
-        config_file = 'config_clothes.cfg'
-    params = process_config_clothes(config_file)
+    params = process_config_clothes()
     print(params)
     # dataset = DataGenClothes(params['joint_list'], params['img_directory'], params['training_txt_file'],
     #                          params['category'])
@@ -599,7 +594,7 @@ if __name__ == '__main__':
     dataset._randomize()
     dataset._create_sets()
     img_name = "Images/blouse/00a2b0f3f13413cd87fa51bb4e25fdfd.jpg"
-    img_name_win = "Images\\blouse\\00a20d1cb79af32d0d6a81af8acb2087.jpg"
+    img_name_win = r"Images\blouse\00a20d1cb79af32d0d6a81af8acb2087.jpg"
     img = dataset.open_img(img_name_win)
     print(img.shape)
     box = [-1, -1, -1, -1]

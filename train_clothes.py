@@ -10,31 +10,9 @@ from datagenclothes import DataGenClothes
 from model_hourglass import HourglassModelForClothes
 import os
 import sys
+from processconfig import process_config_clothes
 
 
-def process_config_clothes(conf_file):
-    """
-    """
-    params = {}
-    config = configparser.ConfigParser()
-    config.read(conf_file)
-    for section in config.sections():
-        if section == 'DataSetHG':
-            for option in config.options(section):
-                params[option] = eval(config.get(section, option))
-        if section == 'Network':
-            for option in config.options(section):
-                params[option] = eval(config.get(section, option))
-        if section == 'Train':
-            for option in config.options(section):
-                params[option] = eval(config.get(section, option))
-        if section == 'Validation':
-            for option in config.options(section):
-                params[option] = eval(config.get(section, option))
-        if section == 'Saver':
-            for option in config.options(section):
-                params[option] = eval(config.get(section, option))
-    return params
 
 
 if __name__ == '__main__':
@@ -44,12 +22,7 @@ if __name__ == '__main__':
         c = argv[1]
     else:
         c = ''
-    name = os.name
-    if name == 'nt':
-        config_file = 'config_clothes_win.cfg'
-    else:
-        config_file = 'config_clothes.cfg'
-    params = process_config_clothes(config_file)
+    params = process_config_clothes()
     category = []
     if c == 'b':
         category.append('blouse')

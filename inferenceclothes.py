@@ -9,7 +9,7 @@ from time import time, clock
 import numpy as np
 import tensorflow as tf
 import scipy.io
-from train_clothes import process_config_clothes
+from processconfig import process_config_clothes
 import cv2
 from predictClothes import PredictClothes
 from yolo_net import YOLONet
@@ -37,7 +37,7 @@ class InferenceClothes():
         runVideoFilter  : SURPRISE !!!
     """
 
-    def __init__(self, config_file='config.cfg', model='hg_refined_tiny_200', yoloModel='YOLO_small.ckpt'):
+    def __init__(self, params, model='hg_refined_tiny_200', yoloModel='YOLO_small.ckpt'):
         """ Initilize the Predictor
         Args:
             config_file 	 	: *.cfg file with model's parameters
@@ -45,7 +45,6 @@ class InferenceClothes():
             yoloModel 	 	    : *.ckpt file (YOLO weights to load)
         """
         t = time()
-        params = process_config_clothes(config_file)
         self.predict = PredictClothes(params)
         self.predict.color_palette()
         self.predict.LINKS_JOINTS()
@@ -240,7 +239,7 @@ def predictallimage(params, category=None, model='hg_clothes_002_50'):
     Args:
         params:
     """
-    inf = InferenceClothes(config_file, model)
+    inf = InferenceClothes(p, model)
     img_test_dir = params['img_test_dir']
     img_dir_temp = os.path.join(img_test_dir, "Images")
     print(img_test_dir, category)

@@ -9,7 +9,7 @@ from time import time, clock, sleep
 import numpy as np
 import tensorflow as tf
 import scipy.io
-from train_clothes import process_config_clothes
+from processconfig import process_config_clothes
 import cv2
 from predictClothes import PredictClothes
 from yolo_net import YOLONet
@@ -22,7 +22,7 @@ import numpy as np
 from inferenceclothes import InferenceClothes
 
 
-def predict_one_category(config_file, category, model='hg_clothes_001_199', ):
+def predict_one_category(params, category, model='hg_clothes_001_199', ):
     """ predict all test image,write into result.csv
         Args:
             config_file : the model  training config
@@ -43,8 +43,7 @@ def predict_one_category(config_file, category, model='hg_clothes_001_199', ):
     cat = category.pop()
     if cat not in ['blouse', 'dress', 'outwear', 'skirt', 'trousers']:
         raise ValueError('category not blouse,dress,outwear,skirt,trousers')
-    inf = InferenceClothes(config_file, model)
-    params = process_config_clothes(config_file)
+    inf = InferenceClothes(params, model)
     print(params)
     csvresult = open('result' + cat + '.csv', 'w', newline='')  # 设置newline，否则两行之间会空一行
     writer = csv.writer(csvresult)
@@ -90,12 +89,7 @@ if __name__ == '__main__':
         raise ValueError('need two parameter or one.One is in b is blouse,d is dress,o is outwear,'
                          's is skirt,t is trousers. Two is the number of epoch\n'
                          'for example: python testonecategoryimage.py b 101 or python testonecategoryimage.py b ')
-    name = os.name
-    if name == 'nt':
-        config_file = 'config_clothes_win.cfg'
-    else:
-        config_file = 'config_clothes.cfg'
-    params = process_config_clothes(config_file)
+    params = process_config_clothes()
     category = []
     if c == 'b':
         category.append('blouse')
