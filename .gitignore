@@ -112,4 +112,3 @@ hg_*.*
 YOLO_small.ckpt
 checkpoint
 result*
-split*.csv
