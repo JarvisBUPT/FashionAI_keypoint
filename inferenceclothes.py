@@ -120,7 +120,6 @@ class InferenceClothes():
         elif len(img.shape) == 4:
             batch = np.copy(img)
             SIZE = True
-        print(batch.shape)
         if SIZE:
             if mode == 'cpu':
                 return self.predict.joints_pred_numpy(batch / 255, coord='img', thresh=thresh, sess=None)

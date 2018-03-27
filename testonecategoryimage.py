@@ -58,7 +58,7 @@ def predict_one_category(params, category, model='hg_clothes_001_199', ):
     params['joint_list'] = joints
     print("test params", params)
     inf = InferenceClothes(params, model)
-    print(params)
+    print("Start predicting ...")
     csvresult = open('result' + cat + '.csv', 'w', newline='')  # 设置newline，否则两行之间会空一行
     writer = csv.writer(csvresult)
     starttime = time()
@@ -67,26 +67,28 @@ def predict_one_category(params, category, model='hg_clothes_001_199', ):
         for value in islice(f, 1, None):  # 读取去掉第一行之后的数据
             value = value.strip().split(',')
             img_name = value[0]
-            img_category = value[1]
-            if img_category == cat:
+            cat_temp = value[1]
+            if cat_temp == cat:
                 try:
                     img = cv2.imread(os.path.join(params['img_test_dir'], img_name))
                     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                     height = img.shape[0]
                     width = img.shape[1]
-                    # print('height',height,'width',width)
                     img = cv2.resize(img, (256, 256))
-                    # print(img.shape)
                     predjoints = inf.predictJoints(img)
                     # predjoints = np.arange(48).reshape((24, 2))
-                    joints = []
+                    joints = []  # 暂存需要提交结果的一行数据
                     joints.append(img_name)
-                    joints.append(img_category)
-                    for i in range(predjoints.shape[0]):
-                        joints.append(
-                            str(int(predjoints[i][1] / 256 * width)) + '_' + str(
-                                int(predjoints[i][0] / 256 * height)) + '_1')
-                    # print(joints)
+                    joints.append(cat_temp)
+                    for i in range(24):
+                        if i in params[cat]:
+                            for j,v in enumerate(params[cat]):
+                                if i ==v:
+                                    joints.append(
+                                str(int(predjoints[j][1] / 256 * width)) + '_' + str(
+                                    int(predjoints[j][0] / 256 * height)) + '_1')
+                        else:
+                            joints.append('-1_-1_-1')
                     writer.writerow(joints)
                 except ValueError:
                     print("Not find the image:", img_name)
@@ -124,6 +126,6 @@ if __name__ == '__main__':
         category = params['category']
         cat = ''
     print('categoty =', category)
-    # model = params['name'] + cat + "_" + epoch
-    model = params['name'] + "_" + epoch
+    model = params['name'] + cat + "_" + epoch
+    # model = params['name'] + "_" + epoch
     predict_one_category(params, category, model)
