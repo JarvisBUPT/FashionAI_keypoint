@@ -18,6 +18,8 @@ def process_config_clothes():
         conf_file = 'config_clothes_win.cfg'
     elif machine_name == 'localhost.localdomain':
         conf_file = 'config_hcy.cfg'
+    elif machine_name == 'DESKTOP-3IQHBMV':
+        conf_file = 'config_clothes_win.cfg'
     else:
         conf_file = 'config_clothes.cfg'
     params = {}

@@ -25,24 +25,38 @@ from inferenceclothes import InferenceClothes
 def predict_one_category(params, category, model='hg_clothes_001_199', ):
     """ predict all test image,write into result.csv
         Args:
-            config_file : the model  training config
-            category    : one of ['blouse', 'dress', 'outwear', 'skirt', 'trousers']
+            params       : the model  needed parameters
+            category    : List, one of ['blouse', 'dress', 'outwear', 'skirt', 'trousers']
             model       : the name using testing
 
-        ['neckline_left0', 'neckline_right1', 'center_front2', 'shoulder_left3', 'shoulder_right4', 'armpit_left5',
-     'armpit_right6', 'waistline_left7', 'waistline_right8', 'cuff_left_in9', 'cuff_left_out10', 'cuff_right_in11',
-     'cuff_right_out12', 'top_hem_left13', 'top_hem_right14', 'waistband_left15', 'waistband_right16', 'hemline_left17',
-     'hemline_right18', 'crotch19', 'bottom_left_in20', 'bottom_left_out21', 'bottom_right_in22', 'bottom_right_out23']
         """
 
-    blouse = [0, 1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14]
-    outwear = [0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
-    trousers = [15, 16, 19, 20, 21, 22, 23]
-    skirt = [15, 16, 17, 18]
-    dress = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 17, 18]
+    blouse = params['blouse']
+    outwear = params['outwear']
+    trousers = params['trousers']
+    skirt = params['skirt']
+    dress = params['dress']
     cat = category.pop()
     if cat not in ['blouse', 'dress', 'outwear', 'skirt', 'trousers']:
         raise ValueError('category not blouse,dress,outwear,skirt,trousers')
+    name = params['name'] + cat  # params['name']=hg_clothes_001+'blouse'
+    if cat == '':
+        num_joints = 24
+    else:
+        num_joints = len(params[cat])
+    joint_list = params['joint_list']
+    joints = []  # 记录该类别对应的24个位置中的哪些值 如：[ 'top_hem_right', 'waistband_left', 'waistband_right', 'hemline_left']
+    if cat == '':
+        joints = joint_list
+    else:
+        for i, v in enumerate(joint_list):
+            if i in params[cat]:
+                joints.append(v)
+    print(joints)
+    params['name'] = name
+    params['num_joints'] = num_joints
+    params['joint_list'] = joints
+    print("test params", params)
     inf = InferenceClothes(params, model)
     print(params)
     csvresult = open('result' + cat + '.csv', 'w', newline='')  # 设置newline，否则两行之间会空一行
@@ -74,7 +88,7 @@ def predict_one_category(params, category, model='hg_clothes_001_199', ):
                                 int(predjoints[i][0] / 256 * height)) + '_1')
                     # print(joints)
                     writer.writerow(joints)
-                except:
+                except ValueError:
                     print("Not find the image:", img_name)
     csvresult.close()
     print("test images in", time() - starttime, " sec")
@@ -110,7 +124,6 @@ if __name__ == '__main__':
         category = params['category']
         cat = ''
     print('categoty =', category)
-    #model = params['name'] + cat + "_" + epoch
-    model = params['name']  + "_" + epoch
-    print(params)
+    # model = params['name'] + cat + "_" + epoch
+    model = params['name'] + "_" + epoch
     predict_one_category(params, category, model)

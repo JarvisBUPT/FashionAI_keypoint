@@ -14,31 +14,39 @@ from itertools import islice
 class DataGenClothes(object):
     """ DataGenerator Class : To generate Train, Validatidation and Test sets
     for the Deep Human Pose Estimation Model
-    Formalized DATA:
-        Inputs:
-            Inputs have a shape of (Number of Image) X (Height: 256) X (Width: 256) X (Channels: 3)
-        Outputs:
-            Outputs have a shape of (Number of Image) X (Number of Stacks) X (Heigth: 64) X (Width: 64) X (OutputDimendion: 16)
+
+    Return:
+        Outputs have a shape of (Number of Image) X (Number of Stacks) X (Heigth: 64) X (Width: 64) X (OutputDimendion:
+        number of joints,13,14,15,4 or 7)
     Joints:
-        We use the MPII convention on joints numbering
+        We use the tianchi clothes keypoint convention on joints numbering
         List of joints:
-            00 - Right Ankle
-            01 - Right Knee
-            02 - Right Hip
-            03 - Left Hip
-            04 - Left Knee
-            05 - Left Ankle
-            06 - Pelvis (Not present in other dataset ex : LSP)
-            07 - Thorax (Not present in other dataset ex : LSP)
-            08 - Neck
-            09 - Top Head
-            10 - Right Wrist
-            11 - Right Elbow
-            12 - Right Shoulder
-            13 - Left Shoulder
-            14 - Left Elbow
-            15 - Left Wrist
-    self.data_dict是以每张图片的name为key，记录每张图片的dict,其key为"joints"、"visible"、"visible"、"category"
+            0--neckline_left
+            1--neckline_right
+            2--center_front
+            3--shoulder_left
+            4--shoulder_right
+            5--armpit_left
+            6--armpit_right
+            7--waistline_left
+            8--waistline_right
+            9--cuff_left_in
+            10--cuff_left_out
+            11--cuff_right_in
+            12--cuff_right_out
+            13--top_hem_left
+            14--top_hem_right
+            15--waistband_left
+            16--waistband_right
+            17--hemline_left
+            18--hemline_right
+            19--crotch
+            20--bottom_left_in
+            21--bottom_left_out
+            22--bottom_right_in
+            23--bottom_right_out
+    Note:self.data_dict the key is the image name (Images/blouse/00a2b0f3f13413cd87fa51bb4e25fdfd.jpg，
+    the value is another dict,which keyis "joints"、"visible"、"visible"、"category".
 
 
    """

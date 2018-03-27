@@ -41,7 +41,7 @@ if __name__ == '__main__':
         cat = ''
     print('categoty =', category, cat)
 
-    name = params['name'] + cat
+    name = params['name'] + cat  # params['name']=hg_clothes_001+'blouse'
     if cat == '':
         num_joints = 24
     else:
