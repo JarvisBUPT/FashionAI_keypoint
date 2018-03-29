@@ -73,7 +73,7 @@ class Inference():
         params = process_config(config_file)
         self.predict = PredictProcessor(params)
         self.predict.color_palette()
-        self.predict.LINKS_JOINTS()
+        self.predict.links_joints()
         self.predict.model_init()
         self.predict.load_model(load=model)
         self.predict.yolo_init()
@@ -268,7 +268,7 @@ if __name__ == '__main__':
         config_file = 'config_test.cfg'
     params = process_config(config_file)
     print(params)
-    inf = Inference('config_test.cfg', 'hg_test_02_106')
+    inf = Inference(config_file, 'hg_refined_200')
     dataset = DataGenerator(params['joint_list'], params['img_directory'], params['training_txt_file'],
                             remove_joints=params['remove_joints'])
     img = dataset.open_img('000033016.jpg')

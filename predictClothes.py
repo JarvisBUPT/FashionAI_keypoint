@@ -85,7 +85,7 @@ class PredictClothes():
         for i, name in enumerate(self.color_name):
             self.palette[name] = self.color[i]
 
-    def LINKS_JOINTS(self):
+    def links_joints(self):
         """ Defines links to be joined for visualization
         Drawing Purposes
         You may need to modify this function
@@ -186,11 +186,11 @@ class PredictClothes():
         """
         with self.graph.as_default():
             with tf.name_scope('prediction'):
-                self.HG.pred_sigmoid = tf.nn.sigmoid(self.HG.output[:, self.HG.nStack - 1],
+                self.pred_sigmoid = tf.nn.sigmoid(self.HG.output[:, self.HG.nStack - 1],
                                                      name='sigmoid_final_prediction')
-                self.HG.pred_final = self.HG.output[:, self.HG.nStack - 1]
-                self.HG.joint_tensor = self._create_joint_tensor(self.HG.output[0], name='joint_tensor')
-                self.HG.joint_tensor_final = self._create_joint_tensor(self.HG.output[0, -1], name='joint_tensor_final')
+                self.pred_final = self.HG.output[:, self.HG.nStack - 1]  # 该变量没有使用
+                self.joint_tensor = self._create_joint_tensor(self.HG.output[0], name='joint_tensor')
+                self.joint_tensor_final = self._create_joint_tensor(self.HG.output[0, -1], name='joint_tensor_final')
         print('Prediction Tensors Ready!')
 
     # ----------------------------PREDICTION METHODS----------------------------
@@ -232,9 +232,9 @@ class PredictClothes():
             t = time()
         if img.shape == (256, 256, 3):
             if sess is None:
-                out = self.HG.Session.run(self.HG.pred_sigmoid, feed_dict={self.HG.img: np.expand_dims(img, axis=0)})
+                out = self.HG.Session.run(self.pred_sigmoid, feed_dict={self.HG.img: np.expand_dims(img, axis=0)})
             else:
-                out = sess.run(self.HG.pred_sigmoid, feed_dict={self.HG.img: np.expand_dims(img, axis=0)})
+                out = sess.run(self.pred_sigmoid, feed_dict={self.HG.img: np.expand_dims(img, axis=0)})
         else:
             print('Image Size does not match placeholder shape')
             raise Exception
@@ -254,15 +254,15 @@ class PredictClothes():
         if debug:
             t = time()
             if sess is None:
-                j1 = self.HG.Session.run(self.HG.joint_tensor, feed_dict={self.HG.img: img})
+                j1 = self.HG.Session.run(self.joint_tensor, feed_dict={self.HG.img: img})
             else:
-                j1 = sess.run(self.HG.joint_tensor, feed_dict={self.HG.img: img})
+                j1 = sess.run(self.joint_tensor, feed_dict={self.HG.img: img})
             print('JT:', time() - t)
             t = time()
             if sess is None:
-                j2 = self.HG.Session.run(self.HG.joint_tensor_final, feed_dict={self.HG.img: img})
+                j2 = self.HG.Session.run(self.joint_tensor_final, feed_dict={self.HG.img: img})
             else:
-                j2 = sess.run(self.HG.joint_tensor_final, feed_dict={self.HG.img: img})
+                j2 = sess.run(self.joint_tensor_final, feed_dict={self.HG.img: img})
             print('JTF:', time() - t)
             if coord == 'hm':
                 return j1, j2
@@ -273,9 +273,9 @@ class PredictClothes():
                 print("Error: 'coord' argument different of ['hm','img']")
         else:
             if sess is None:
-                j = self.HG.Session.run(self.HG.joint_tensor_final, feed_dict={self.HG.img: img})
+                j = self.HG.Session.run(self.joint_tensor_final, feed_dict={self.HG.img: img})
             else:
-                j = sess.run(self.HG.joint_tensor_final, feed_dict={self.HG.img: img})
+                j = sess.run(self.joint_tensor_final, feed_dict={self.HG.img: img})
             if coord == 'hm':
                 return j
             elif coord == 'img':
@@ -291,9 +291,9 @@ class PredictClothes():
             Not more efficient than Numpy, prefer Numpy for such operation!
         """
         if sess is None:
-            hm = self.HG.Session.run(self.HG.pred_sigmoid, feed_dict={self.HG.img: img})
+            hm = self.HG.Session.run(self.pred_sigmoid, feed_dict={self.HG.img: img})
         else:
-            hm = sess.run(self.HG.pred_sigmoid, feed_dict={self.HG.img: img})
+            hm = sess.run(self.pred_sigmoid, feed_dict={self.HG.img: img})
         joints = -1 * np.ones(shape=(self.params['num_joints'], 2))
         for i in range(self.params['num_joints']):
             index = np.unravel_index(hm[0, :, :, i].argmax(), (self.params['hm_size'], self.params['hm_size']))
@@ -317,7 +317,7 @@ class PredictClothes():
         if debug:
             t = time()
         if batch[0].shape == (256, 256, 3):
-            out = self.HG.Session.run(self.HG.pred_sigmoid, feed_dict={self.HG.img: batch})
+            out = self.HG.Session.run(self.pred_sigmoid, feed_dict={self.HG.img: batch})
         else:
             print('Image Size does not match placeholder shape')
             raise Exception
@@ -388,7 +388,7 @@ class PredictClothes():
             img = np.copy(img)
         if norm:
             img_hg = img / 255
-        hg = self.HG.Session.run(self.HG.pred_sigmoid, feed_dict={self.HG.img: np.expand_dims(img_hg, axis=0)})
+        hg = self.HG.Session.run(self.pred_sigmoid, feed_dict={self.HG.img: np.expand_dims(img_hg, axis=0)})
         j = np.ones(shape=(self.params['num_joints'], 2)) * -1
         for i in range(len(j)):
             idx = np.unravel_index(hg[0, :, :, i].argmax(), (64, 64))
@@ -507,7 +507,7 @@ class PredictClothes():
             img_hg = cv2.resize(img, (256, 256))
             img_res = cv2.resize(img, (500, 500))
             img_hg = cv2.cvtColor(img_hg, cv2.COLOR_BGR2RGB)
-            j = self.HG.Session.run(self.HG.joint_tensor_final,
+            j = self.HG.Session.run(self.joint_tensor_final,
                                     feed_dict={self.HG.img: np.expand_dims(img_hg / 255, axis=0)})
             j = np.asarray(j * 500 / 64).astype(np.int)
             joints = self.jointsToMat(j)
@@ -567,7 +567,7 @@ class PredictClothes():
             img_res = cv2.resize(img, (400, 400))
             cv2.imwrite('F:/Cours/DHPE/photos/acp/%04d.png' % (frame,), img_res)
             img_hg = cv2.cvtColor(img_hg, cv2.COLOR_BGR2RGB)
-            j = self.HG.Session.run(self.HG.joint_tensor_final,
+            j = self.HG.Session.run(self.joint_tensor_final,
                                     feed_dict={self.HG.img: np.expand_dims(img_hg / 255, axis=0)})
             j = np.asarray(j * 400 / 64).astype(np.int)
             joints = self.jointsToMat(j)
@@ -615,7 +615,7 @@ class PredictClothes():
             img_res = cv2.resize(img, (800, 800))
             # img_copy = np.copy(img_res)
             img_hg = cv2.cvtColor(img_hg, cv2.COLOR_BGR2RGB)
-            hg = self.HG.Session.run(self.HG.pred_sigmoid,
+            hg = self.HG.Session.run(self.pred_sigmoid,
                                      feed_dict={self.HG.img: np.expand_dims(img_hg / 255, axis=0)})
             j = np.ones(shape=(self.params['num_joints'], 2)) * -1
             if plt_hm:
@@ -706,7 +706,7 @@ class PredictClothes():
                 padd = np.array([[padding[1], padding[3]], [padding[0], padding[2]], [0, 0]])
                 img_person = np.pad(img_person, padd, mode='constant')
                 img_person = cv2.resize(img_person, (256, 256))
-                hm = self.HG.Session.run(self.HG.pred_sigmoid,
+                hm = self.HG.Session.run(self.pred_sigmoid,
                                          feed_dict={self.HG.img: np.expand_dims(img_person / 255, axis=0)})
                 j = -1 * np.ones(shape=(self.params['num_joints'], 2))
                 joint = -1 * np.ones(shape=(self.params['num_joints'], 2))
@@ -770,7 +770,7 @@ class PredictClothes():
         padd = np.array([[padding[1], padding[3]], [padding[0], padding[2]], [0, 0]])
         img_person = np.pad(img_person, padd, mode='constant')
         img_person = cv2.resize(img_person, (256, 256))
-        hm = self.HG.Session.run(self.HG.pred_sigmoid,
+        hm = self.HG.Session.run(self.pred_sigmoid,
                                  feed_dict={self.HG.img: np.expand_dims(img_person / 255, axis=0)})
         j = -1 * np.ones(shape=(self.params['num_joints'], 2))
         joint = -1 * np.ones(shape=(self.params['num_joints'], 2))
@@ -917,7 +917,7 @@ class PredictClothes():
                 padd = np.array([[padding[1], padding[3]], [padding[0], padding[2]], [0, 0]])
                 img_person = np.pad(img_person, padd, mode='constant')
                 img_person = cv2.resize(img_person, (256, 256))
-                hm = self.HG.Session.run(self.HG.pred_sigmoid,
+                hm = self.HG.Session.run(self.pred_sigmoid,
                                          feed_dict={self.HG.img: np.expand_dims(img_person / 255, axis=0)})
                 j = -1 * np.ones(shape=(self.params['num_joints'], 2))
                 joint = -1 * np.ones(shape=(self.params['num_joints'], 2))
@@ -1303,7 +1303,7 @@ if __name__ == '__main__':
     print(params)
     predict = PredictClothes(params)
     predict.color_palette()
-    predict.LINKS_JOINTS()
+    predict.links_joints()
     predict.model_init()
     print("load model ...")
     predict.load_model(load='hg_clothes_001_200')

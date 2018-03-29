@@ -147,10 +147,17 @@ l           logdir_train       : Directory to Train Log file
 
     def generate_model(self):
         """ Create the complete graph
+        placeholder:
+            self.img        : dtype=tf.float32, shape=(None, 256, 256, 3)
+            self.weights    : dtype=tf.float32, shape=(None, self.outDim)
+            self.gtMaps     : dtype=tf.float32, shape=(None, self.nStack, 64, 64, self.outDim)
+
         """
         startTime = time.time()
         print('CREATE MODEL:')
+        # 1 设置输入placeholder、建图graph和损失
         with tf.device(self.gpu):
+            # 设置输入
             with tf.name_scope('inputs'):
                 # Shape Input Image - batchSize: None, height: 256, width: 256, channel: 3 (RGB)
                 self.img = tf.placeholder(dtype=tf.float32, shape=(None, 256, 256, 3), name='input_img')
@@ -163,12 +170,14 @@ l           logdir_train       : Directory to Train Log file
             # weights = tf.placeholder(dtype = tf.float32, shape = (None, self.nStack, 1, 1, self.outDim))
             inputTime = time.time()
             print('---Inputs : Done (' + str(int(abs(inputTime - startTime))) + ' sec.)')
+            # 设置图
             if self.attention:
                 self.output = self._graph_mcam(self.img)
             else:
                 self.output = self._graph_hourglass(self.img)
             graphTime = time.time()
             print('---Graph : Done (' + str(int(abs(graphTime - inputTime))) + ' sec.)')
+            # 设置损失
             with tf.name_scope('loss'):
                 if self.w_loss:
                     self.loss = tf.reduce_mean(self.weighted_bce_loss(), name='reduced_loss')
@@ -178,6 +187,7 @@ l           logdir_train       : Directory to Train Log file
                         name='cross_entropy_loss')
             lossTime = time.time()
             print('---Loss : Done (' + str(int(abs(graphTime - lossTime))) + ' sec.)')
+        # 2 计算准确率 调整学习率
         with tf.device(self.cpu):
             with tf.name_scope('accuracy'):
                 self._accuracy_computation()
@@ -190,20 +200,25 @@ l           logdir_train       : Directory to Train Log file
                                                      staircase=True, name='learning_rate')
             lrTime = time.time()
             print('---LR : Done (' + str(int(abs(accurTime - lrTime))) + ' sec.)')
+        # 3 设置优化器，最小化损失值
         with tf.device(self.gpu):
+            # 设置优化器rmsprop
             with tf.name_scope('rmsprop'):
                 self.rmsprop = tf.train.RMSPropOptimizer(learning_rate=self.lr)
             optimTime = time.time()
             print('---Optim : Done (' + str(int(abs(optimTime - lrTime))) + ' sec.)')
+            # 最小化损失韩式值
             with tf.name_scope('minimizer'):
                 self.update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
                 with tf.control_dependencies(self.update_ops):
                     self.train_rmsprop = self.rmsprop.minimize(self.loss, self.train_step)
             minimTime = time.time()
             print('---Minimizer : Done (' + str(int(abs(optimTime - minimTime))) + ' sec.)')
+        # 4 初始化全部变量
         self.init = tf.global_variables_initializer()
         initTime = time.time()
         print('---Init : Done (' + str(int(abs(initTime - minimTime))) + ' sec.)')
+        # 5 保存loss,learning_rate等用于summary
         with tf.device(self.cpu):
             with tf.name_scope('training'):
                 tf.summary.scalar('loss', self.loss, collections=['train'])
@@ -425,6 +440,8 @@ l           logdir_train       : Directory to Train Log file
         """Create the Network
         Args:
             inputs : TF Tensor (placeholder) of shape (None, 256, 256, 3) #TODO : Create a parameter for customize size
+        Returns:
+
         """
         with tf.name_scope('model'):
             with tf.name_scope('preprocessing'):

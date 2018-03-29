@@ -47,7 +47,7 @@ class InferenceClothes():
         t = time()
         self.predict = PredictClothes(params)
         self.predict.color_palette()
-        self.predict.LINKS_JOINTS()
+        self.predict.links_joints()
         self.predict.model_init()
         self.predict.load_model(load=model)
         self.predict.yolo_init()
@@ -288,12 +288,7 @@ def predictallimage(params, category=None, model='hg_clothes_002_50'):
 
 
 if __name__ == '__main__':
-    name = os.name
-    if name == 'nt':
-        config_file = 'config_clothes_win.cfg'
-    else:
-        config_file = 'config_clothes.cfg'
-    params = process_config_clothes(config_file)
+    params = process_config_clothes()
     print(params)
     starttime = time()
     predictallimage(params,params['category'])
