@@ -25,10 +25,18 @@ kernel = tf.Variable(xavier_initializer(uniform=False)([1, 1, inputs.get_shape()
 print('kernel', kernel)
 conv = tf.nn.conv2d(inputs, kernel, [1, 2, 2, 1], padding='VALID', data_format='NHWC')
 print('conv', conv)
-tf.nn.batch_normalization()
+# tf.GraphKeys.SUMMARIES = "summaries"
+x = tf.constant(np.arange(24).reshape((2, 3, 4)), dtype=tf.float32)
+print(x)
+y = tf.constant(np.arange(24, 48).reshape((2, 3, 4)), dtype=tf.float32)
+z = tf.constant(np.arange(48, 72).reshape((2, 3, 4)), dtype=tf.float32)
+cc = [x, y, z]
+stack = tf.stack([x], axis=1)
 with tf.Session() as sess:
     sess.run(init)
-
+    print(sess.run(x))
+    print(sess.run(stack))
+    print()
     # print(sess.run(pad1))
     # print(sess.run(conv))
 

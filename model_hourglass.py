@@ -330,7 +330,7 @@ l           logdir_train       : Directory to Train Log file
         """
         with tf.name_scope('Session'):
             with tf.device(self.gpu):
-                self._init_weight()
+                self._init_global_variables()
                 self._define_saver_summary()
                 if load is not None:
                     self.saver.restore(self.Session, load)
@@ -377,7 +377,7 @@ l           logdir_train       : Directory to Train Log file
                     self.test_summary = tf.summary.FileWriter(self.logdir_test)
                     # self.weight_summary = tf.summary.FileWriter(self.logdir_train, tf.get_default_graph())
 
-    def _init_weight(self):
+    def _init_global_variables(self):
         """ Initialize weights
         """
         print('Session initialization')

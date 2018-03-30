@@ -211,7 +211,7 @@ l           logdir_train       : Directory to Train Log file
                 self.rmsprop = tf.train.RMSPropOptimizer(learning_rate=self.lr)
             optimTime = time.time()
             print('---Optim : Done (' + str(int(abs(optimTime - lrTime))) + ' sec.)')
-            # 最小化损失韩式值
+            # 最小化损失函数值
             with tf.name_scope('minimizer'):
                 self.update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
                 with tf.control_dependencies(self.update_ops):
@@ -376,7 +376,7 @@ l           logdir_train       : Directory to Train Log file
         """
         with tf.name_scope('Session'):
             with tf.device(self.gpu):
-                self._init_weight()
+                self._init_global_variables()
                 self._define_saver_summary()
                 if load is not None:
                     self.saver.restore(self.Session, load)
@@ -423,7 +423,7 @@ l           logdir_train       : Directory to Train Log file
                     self.test_summary = tf.summary.FileWriter(self.logdir_test)
                     # self.weight_summary = tf.summary.FileWriter(self.logdir_train, tf.get_default_graph())
 
-    def _init_weight(self):
+    def _init_global_variables(self):
         """ Initialize weights
         """
         print('Session initialization')
@@ -562,7 +562,7 @@ l           logdir_train       : Directory to Train Log file
     def _conv(self, inputs, filters, kernel_size=1, strides=1, pad='VALID', name='conv'):
         """ Spatial Convolution (CONV2D)
         Args:
-            inputs			: Input Tensor (Data Type : NHWC)
+            inputs			: Input Tensor (Data Type : NHWC)[N, h, w, inputs_c]
             filters		    : Number of filters (channels)
             kernel_size	    : Size of kernel
             strides		    : Stride
@@ -570,6 +570,8 @@ l           logdir_train       : Directory to Train Log file
             name			: Name of the block
         Returns:
             conv			: Output Tensor (Convolved Input)
+            Dim is [N, (h - kernel_size)/stride +1, (h - kernel_size)/stride +1, f]
+            if you want to return [N, h, w, f], let kernel_size = h*(1-stride) + s ，then kernel_size=1, stride =1 ,h =h.
         """
         with tf.name_scope(name):
             # Kernel for convolution, Xavier Initialisation [6,6,3,64]
@@ -584,19 +586,23 @@ l           logdir_train       : Directory to Train Log file
     def _conv_bn_relu(self, inputs, filters, kernel_size=1, strides=1, pad='VALID', name='conv_bn_relu'):
         """ Spatial Convolution (CONV2D) + BatchNormalization + ReLU Activation
         Args:
-            inputs			: Input Tensor (Data Type : NHWC)
+            inputs			: Input Tensor (Data Type : NHWC)[N, h, w, c]
             filters		    : Number of filters (channels)
             kernel_size	    : Size of kernel
             strides		    : Stride
             pad				: Padding Type (VALID/SAME) # DO NOT USE 'SAME' NETWORK BUILT FOR VALID
             name			: Name of the block
         Returns:
-            norm			: Output Tensor
+            norm			: Output Tensor.
+            Dim is [N, (h - kernel_size)/stride +1, (h - kernel_size)/stride +1, f]
+            if you want to return [N, h, w, f], let kernel_size = h*(1-stride) + s ，then kernel_size=1, stride =1 ,h =h.
         """
         with tf.name_scope(name):
             kernel = tf.Variable(xavier_initializer(uniform=False)(
                 [kernel_size, kernel_size, inputs.get_shape().as_list()[3], filters]), name='weights')
+            # Dim kernel : [1, 1, inputs_c, f]
             conv = tf.nn.conv2d(inputs, kernel, [1, strides, strides, 1], padding='VALID', data_format='NHWC')
+            # Dim conv : [N, (h-kernel_size)/stride +1, (h-kernel_size)/stride +1, f]
             norm = batch_norm(conv, 0.9, epsilon=1e-5, activation_fn=tf.nn.relu,
                               is_training=self.training)
             if self.w_summary:
@@ -616,7 +622,7 @@ l           logdir_train       : Directory to Train Log file
         if self.tiny:
             with tf.name_scope(name):
                 norm = batch_norm(inputs, 0.9, epsilon=1e-5, activation_fn=tf.nn.relu,
-                                                    is_training=self.training)
+                                  is_training=self.training)
                 pad = tf.pad(norm, np.array([[0, 0], [1, 1], [1, 1], [0, 0]]), name='pad')
                 conv = self._conv(pad, int(numOut), kernel_size=3, strides=1, pad='VALID', name='conv')
                 return conv
@@ -624,19 +630,19 @@ l           logdir_train       : Directory to Train Log file
             with tf.name_scope(name):
                 with tf.name_scope('norm_1'):
                     norm_1 = batch_norm(inputs, 0.9, epsilon=1e-5, activation_fn=tf.nn.relu,
-                                                          is_training=self.training)
+                                        is_training=self.training)
                     conv_1 = self._conv(norm_1, int(numOut / 2), kernel_size=1, strides=1, pad='VALID', name='conv')
                     # Dim conv_1 : [b, h, w, numOut/2]
                 with tf.name_scope('norm_2'):
                     norm_2 = batch_norm(conv_1, 0.9, epsilon=1e-5, activation_fn=tf.nn.relu,
-                                                          is_training=self.training)
+                                        is_training=self.training)
                     pad = tf.pad(norm_2, np.array([[0, 0], [1, 1], [1, 1], [0, 0]]), name='pad')
                     # Dim pad : [b, h+2, w+2, numOut/2]
                     conv_2 = self._conv(pad, int(numOut / 2), kernel_size=3, strides=1, pad='VALID', name='conv')
                     # Dim conv_2 : [b, h, w, bumOut/2]
                 with tf.name_scope('norm_3'):
                     norm_3 = batch_norm(conv_2, 0.9, epsilon=1e-5, activation_fn=tf.nn.relu,
-                                                          is_training=self.training)
+                                        is_training=self.training)
                     conv_3 = self._conv(norm_3, int(numOut), kernel_size=1, strides=1, pad='VALID', name='conv')
                     # Dim conv_3 : [b, h, w, numOut]
                 return conv_3
@@ -664,7 +670,7 @@ l           logdir_train       : Directory to Train Log file
             numOut	: Number of Output Features (channels)
             name	: Name of the block
         Returns:
-
+            A Tensor. Dim is [N, h, w, numOut]
         """
         with tf.name_scope(name):
             convb = self._conv_block(inputs, numOut)
@@ -677,23 +683,24 @@ l           logdir_train       : Directory to Train Log file
     def _hourglass(self, inputs, n, numOut, name='hourglass'):
         """ Hourglass Module
         Args:
-            inputs	: Input Tensor [N, h, w, c]
+            inputs	: Input Tensor [N, h, w, inputs_c]
             n		: Number of downsampling step , the default is 4 in the paper n=4
             numOut	: Number of Output Features (channels) nFeat = 512
             name	: Name of the block
+        Return:
+            A Tensor. Dim is [N, h, w, numOut]
         """
         with tf.name_scope(name):
             # Upper Branch
             up_1 = self._residual(inputs, numOut, name='up_1')  # [N, h, w, numOut]
             # Lower Branch
-            low_ = max_pool2d(inputs, [2, 2], [2, 2], padding='VALID')  # [N, h/2, w/2, numOut]
+            low_ = max_pool2d(inputs, [2, 2], [2, 2], padding='VALID')  # [N, h/2, w/2, inputs_c]
             low_1 = self._residual(low_, numOut, name='low_1')  # [N, h/2, w/2, numOut]
 
             if n > 0:
                 low_2 = self._hourglass(low_1, n - 1, numOut, name='low_2')  # 递归
             else:
                 low_2 = self._residual(low_1, numOut, name='low_2')  # [N, h/2, w/2, numOut]
-            # [TODO] the low_2  Dim is lastly [?,?,?,?] in the paper
             low_3 = self._residual(low_2, numOut, name='low_3')
             up_2 = tf.image.resize_nearest_neighbor(low_3, tf.shape(low_3)[1:3] * 2, name='upsampling')
             if self.modif:
@@ -751,7 +758,7 @@ l           logdir_train       : Directory to Train Log file
 
     def _bn_relu(self, inputs):
         norm = batch_norm(inputs, 0.9, epsilon=1e-5, activation_fn=tf.nn.relu,
-                                            is_training=self.training)
+                          is_training=self.training)
         return norm
 
     def _pool_layer(self, inputs, numOut, name='pool_layer'):
@@ -905,3 +912,11 @@ l           logdir_train       : Directory to Train Log file
                     tmointer = tf.add_n([inter[i], outmap, ll3])
                     inter.append(tmointer)
         return tf.stack(out, axis=1, name='final_output')
+
+
+if __name__ == '__main__':
+    hg = HourglassModel()
+    inputs = tf.Variable(np.arange(256 * 256 * 3).reshape((1, 256, 256, 3)), dtype=tf.float32)
+    print(inputs)
+    # hg._hourglass(inputs, 4, 2)
+    hg._graph_hourglass(inputs)
