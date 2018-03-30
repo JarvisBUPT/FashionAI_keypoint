@@ -30,7 +30,7 @@ Abstract:
 
 import sys
 import os
-
+import cv2
 sys.path.append('./')
 
 from hourglass_tiny import HourglassModel
@@ -1350,4 +1350,8 @@ if __name__ == '__main__':
     predict.yolo_init()
     predict.restore_yolo(load='YOLO_small.ckpt')
     predict._create_prediction_tensor()
+    img_src = cv2.imread('000033016.jpg')
+    img = cv2.resize(img_src, (256, 256))
+    print(img.shape)
+    predict.pltSkeleton(img)
     print('Done: ', time() - t, ' sec.')
