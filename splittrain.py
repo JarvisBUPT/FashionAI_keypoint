@@ -33,6 +33,7 @@ if __name__ == '__main__':
     writertrousers = csv.writer(ftrousers)
 
     with open(params['training_txt_file'], "r") as f:
+    # with open('train_1.csv', "r") as f:
         for value in islice(f, 1, None):  # 读取去掉第一行之后的数据
             joint = []  # 存储值为x1_y1_visible
             joint_ = []  # 记录每张图的关节点坐标x1,y1,x2,y2...，并且对于不可见和不存在的点的坐标变成-1，-1
@@ -60,6 +61,12 @@ if __name__ == '__main__':
                         joint_.append(int(x))
                         joint_.append(int(y))
             writerblouse.writerow(joint)
+            joint = []
+            joint_ = []
+            joint.append(name)
+            joint.append(cat)
+            joint_.append(name)
+            joint_.append(cat)
                 # writerblouse.writerow(joint_)
             # if cat == 'dress':
             for i, cord in enumerate(keypoints):
@@ -73,6 +80,12 @@ if __name__ == '__main__':
                         joint_.append(int(x))
                         joint_.append(int(y))
             writerdress.writerow(joint)
+            joint = []
+            joint_ = []
+            joint.append(name)
+            joint.append(cat)
+            joint_.append(name)
+            joint_.append(cat)
             # writerdress.writerow(joint_)
             # if cat == 'outwear':
             for i, cord in enumerate(keypoints):
@@ -86,6 +99,12 @@ if __name__ == '__main__':
                         joint_.append(int(x))
                         joint_.append(int(y))
             writeroutwear.writerow(joint)
+            joint = []
+            joint_ = []
+            joint.append(name)
+            joint.append(cat)
+            joint_.append(name)
+            joint_.append(cat)
                 # writeroutwear.writerow(joint_)
             # if cat == 'skirt':
             for i, cord in enumerate(keypoints):
@@ -99,6 +118,12 @@ if __name__ == '__main__':
                         joint_.append(int(x))
                         joint_.append(int(y))
             writerskirt.writerow(joint)
+            joint = []
+            joint_ = []
+            joint.append(name)
+            joint.append(cat)
+            joint_.append(name)
+            joint_.append(cat)
                 # writerskirt.writerow(joint_)
             # if cat == 'trousers':
             for i, cord in enumerate(keypoints):
@@ -112,6 +137,12 @@ if __name__ == '__main__':
                         joint_.append(int(x))
                         joint_.append(int(y))
             writertrousers.writerow(joint)
+            joint = []
+            joint_ = []
+            joint.append(name)
+            joint.append(cat)
+            joint_.append(name)
+            joint_.append(cat)
                 # writertrousers.writerow(joint_)
     fblouse.close()
     fdress.close()
