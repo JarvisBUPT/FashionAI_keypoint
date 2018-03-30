@@ -9,6 +9,7 @@ from skimage import transform
 import scipy.misc as scm
 import csv
 from itertools import islice
+import sys
 
 
 class DataGenClothes(object):
@@ -79,14 +80,14 @@ class DataGenClothes(object):
         self.img_dir = img_dir
         img_dir_temp = os.path.join(img_dir, "Images")
         print(img_dir)
-        for k in category:
+        for k in params['category']:
             img_dir_cat = os.path.join(img_dir_temp, k)
             self.images.extend(os.listdir(img_dir_cat))
 
         self.category = category
         self.cat = cat
         # print(self.images)
-        print(self.images.__len__())
+        print('images totals:', self.images.__len__())
 
     # --------------------Generator Initialization Methods ---------------------
 
@@ -110,31 +111,28 @@ class DataGenClothes(object):
                 line = value.split(',')
                 name = line[0]
                 category = line[1]
-                if category == self.cat:
-                    self.train_table.append(name)
-                    keypoints = list(line[2:])  # 只截取关键点部位的坐标，x_y_visible,
-                    box = list([-1, -1, -1, -1])
-                    isvisible = []  # 每个关键点的可见度
-                    # joints = [map(int, cord.split('_')) for cord in keypoints]
-                    for cord in keypoints:
-                        x, y, visible = cord.split('_')
-                        if visible == '0':
-                            joint_.append(-1)
-                            joint_.append(-1)
-                        else:
-                            joint_.append(int(x))
-                            joint_.append(int(y))
-                        isvisible.append(int(visible))
-                    if joint_ == [-1] * len(joint_):
-                        self.no_intel.append(name)
+                # if category == self.cat:
+                self.train_table.append(name)
+                keypoints = list(line[2:])  # 只截取关键点部位的坐标，x_y_visible,
+                box = list([-1, -1, -1, -1])
+                isvisible = []  # 每个关键点的可见度
+                # joints = [map(int, cord.split('_')) for cord in keypoints]
+                for cord in keypoints:
+                    x, y, visible = cord.split('_')
+                    if visible == '0':
+                        joint_.append(-1)
+                        joint_.append(-1)
                     else:
-                        joints = np.reshape(joint_, (-1, 2))
-                        w = [1] * joints.shape[0]
-                        for i in range(joints.shape[0]):
-                            if np.array_equal(joints[i], [-1, -1]):
-                                w[i] = 0
-                        self.data_dict[name] = {'category': category, 'box': box, 'joints': joints, 'weights': w,
-                                                'visible': isvisible}
+                        joint_.append(int(x))
+                        joint_.append(int(y))
+                    isvisible.append(int(visible))
+                    joints = np.reshape(joint_, (-1, 2))
+                    w = [1] * joints.shape[0]
+                    for i in range(joints.shape[0]):
+                        if np.array_equal(joints[i], [-1, -1]):
+                            w[i] = 0
+                    self.data_dict[name] = {'category': category, 'box': box, 'joints': joints, 'weights': w,
+                                            'visible': isvisible}
         print("data_dict totals :", len(self.data_dict))
         print("_create_train_table %f  s" % (time.time() - start_time))
 
@@ -148,10 +146,10 @@ class DataGenClothes(object):
         Args:
             name 	: Name of the sample
         """
-        for i in range(self.data_dict[name]['joints'].shape[0]):
-            if np.array_equal(self.data_dict[name]['joints'][i], [-1, -1]):
-                return False
-        return True
+        if self.data_dict[name]['category'] == self.cat:
+            return True
+        return False
+
 
     def _give_batch_name(self, batch_size=16, set='train'):
         """ Returns a List of Samples
@@ -182,13 +180,13 @@ class DataGenClothes(object):
         print("val_sample have %d samples" % valid_sample)
         self.train_set = self.train_table[:sample - valid_sample]
         self.valid_set = []
-        # preset = self.train_table[sample - valid_sample:]
-        # for elem in preset:
-        #     if self._complete_sample(elem):
-        #         self.valid_set.append(elem)
-        #     else:
-        #         self.train_set.append(elem)
-        self.valid_set = self.train_table[sample - valid_sample:]
+        preset = self.train_table[sample - valid_sample:]
+        for elem in preset:
+            if self._complete_sample(elem):
+                self.valid_set.append(elem)
+            else:
+                self.train_set.append(elem)
+        # self.valid_set = self.train_table[sample - valid_sample:]
         np.save('Dataset-Validation-Set', self.valid_set)
         np.save('Dataset-Training-Set', self.train_set)
         print('--Training set :', len(self.train_set), ' samples.')
@@ -591,22 +589,58 @@ class DataGenClothes(object):
 if __name__ == '__main__':
     from processconfig import process_config_clothes
 
-    print('--Parsing Config File')
+    argv = sys.argv
+    if len(argv) == 2:
+        c = argv[1]
+    else:
+        c = ''
     params = process_config_clothes()
-    print(params)
-    # dataset = DataGenClothes(params['joint_list'], params['img_directory'], params['training_txt_file'],
-    #                          params['category'])
-    dataset = DataGenClothes(params['joint_list'], params['img_directory'], 'train_1.csv',
-                             params['category'])
+    category = []
+    if c == 'b':
+        category.append('blouse')
+        cat = 'blouse'
+    elif c == 'd':
+        category.append('dress')
+        cat = 'dress'
+    elif c == 'o':
+        category.append('outwear')
+        cat = 'outwear'
+    elif c == 's':
+        category.append('skirt')
+        cat = 'skirt'
+    elif c == 't':
+        category.append('trousers')
+        cat = 'trousers'
+    else:
+        category = params['category']
+        cat = ''
+    print('categoty =', category, cat)
+
+    name = params['name'] + cat  # params['name']=hg_clothes_001+'blouse'
+    if cat == '':
+        num_joints = 24
+    else:
+        num_joints = len(params[cat])
+    joint_list = params['joint_list']
+    joints = []
+    if cat == '':
+        joints = joint_list
+    else:
+        for i, v in enumerate(joint_list):
+            if i in params[cat]:
+                joints.append(v)
+    print(joints)
+    dataset = DataGenClothes(joints, params['img_directory'], "split_" + cat + ".csv",
+                             category, cat)
     dataset._create_train_table()
     dataset._randomize()
     dataset._create_sets()
-    img_name = "Images/blouse/00a2b0f3f13413cd87fa51bb4e25fdfd.jpg"
-    img_name_win = r"Images\blouse\00a20d1cb79af32d0d6a81af8acb2087.jpg"
-    img = dataset.open_img(img_name_win)
-    print(img.shape)
-    box = [-1, -1, -1, -1]
-    padd, cbox = dataset._crop_data(img.shape[0], img.shape[1], box, dataset.data_dict[img_name]['joints'], boxp=0.2)
+    # img_name = "Images/blouse/00a2b0f3f13413cd87fa51bb4e25fdfd.jpg"
+    # img_name_win = r"Images\blouse\00a20d1cb79af32d0d6a81af8acb2087.jpg"
+    # img = dataset.open_img(img_name_win)
+    # print(img.shape)
+    # box = [-1, -1, -1, -1]
+    # padd, cbox = dataset._crop_data(img.shape[0], img.shape[1], box, dataset.data_dict[img_name]['joints'], boxp=0.2)
     # new_j = dataset._relative_joints(cbox, padd, dataset.joints, to_size=64)
     # hm = dataset._generate_hm(64, 64, new_j, 64, dataset.weight)
     # img = dataset._crop_img(img, padd, cbox)

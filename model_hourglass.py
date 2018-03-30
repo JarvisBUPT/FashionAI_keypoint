@@ -213,7 +213,7 @@ l           logdir_train       : Directory to Train Log file
                 else:
                     print('Please give a Model in args (see README for further information)')
 
-    def _train(self, nEpochs=10, epochSize=1000, saveStep=500, validIter=10):
+    def _train(self, nEpochs=10, epochSize=1000, saveStep=100, validIter=10):
         """
         """
         with tf.name_scope('Train'):
@@ -293,6 +293,7 @@ l           logdir_train       : Directory to Train Log file
                 self.resume['accur'].append(accuracy_pred)
                 self.resume['err'].append(np.sum(accuracy_array) / len(accuracy_array))
                 valid_summary = self.Session.run(self.test_op, feed_dict={self.img: img_valid, self.gtMaps: gt_valid})
+                self.record_training(self.resume)
                 self.test_summary.add_summary(valid_summary, epoch)
                 self.test_summary.flush()
             print('Training Done')
@@ -319,7 +320,7 @@ l           logdir_train       : Directory to Train Log file
         out_file.close()
         print('Training Record Saved')
 
-    def training_init(self, nEpochs=10, epochSize=1000, saveStep=500, dataset=None, load=None):
+    def training_init(self, nEpochs=10, epochSize=1000, saveStep=100, dataset=None, load=None):
         """ Initialize the training
         Args:
             nEpochs		: Number of Epochs to train
@@ -366,11 +367,11 @@ l           logdir_train       : Directory to Train Log file
             logdir_train		: Path to train summary directory
             logdir_test		: Path to test summary directory
         """
-        if (self.logdir_train == None) or (self.logdir_test == None):
+        if (self.logdir_train is None) or (self.logdir_test is None):
             raise ValueError('Train/Test directory not assigned')
         else:
             with tf.device(self.cpu):
-                self.saver = tf.train.Saver()
+                self.saver = tf.train.Saver(max_to_keep=1, keep_checkpoint_every_n_hour=4)
             if summary:
                 with tf.device(self.gpu):
                     self.train_summary = tf.summary.FileWriter(self.logdir_train, tf.get_default_graph())
