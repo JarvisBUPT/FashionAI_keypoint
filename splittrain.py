@@ -48,70 +48,70 @@ if __name__ == '__main__':
             joint_.append(cat)
             keypoints = list(line[2:])  # 只截取关键点部位的坐标，x_y_visible,
             print(keypoints)
-            if cat == 'blouse':
-                for i, cord in enumerate(keypoints):
-                    if i in blouse:
-                        joint.append(cord)
-                        x, y, visible = cord.split('_')
-                        if visible == '0':
-                            joint_.append(-1)
-                            joint_.append(-1)
-                        else:
-                            joint_.append(int(x))
-                            joint_.append(int(y))
-                writerblouse.writerow(joint)
+            # if cat == 'blouse':
+            for i, cord in enumerate(keypoints):
+                if i in blouse:
+                    joint.append(cord)
+                    x, y, visible = cord.split('_')
+                    if visible == '0':
+                        joint_.append(-1)
+                        joint_.append(-1)
+                    else:
+                        joint_.append(int(x))
+                        joint_.append(int(y))
+            writerblouse.writerow(joint)
                 # writerblouse.writerow(joint_)
-            if cat == 'dress':
-                for i, cord in enumerate(keypoints):
-                    if i in dress:
-                        joint.append(cord)
-                        x, y, visible = cord.split('_')
-                        if visible == '0':
-                            joint_.append(-1)
-                            joint_.append(-1)
-                        else:
-                            joint_.append(int(x))
-                            joint_.append(int(y))
-                writerdress.writerow(joint)
-                # writerdress.writerow(joint_)
-            if cat == 'outwear':
-                for i, cord in enumerate(keypoints):
-                    if i in outwear:
-                        joint.append(cord)
-                        x, y, visible = cord.split('_')
-                        if visible == '0':
-                            joint_.append(-1)
-                            joint_.append(-1)
-                        else:
-                            joint_.append(int(x))
-                            joint_.append(int(y))
-                writeroutwear.writerow(joint)
+            # if cat == 'dress':
+            for i, cord in enumerate(keypoints):
+                if i in dress:
+                    joint.append(cord)
+                    x, y, visible = cord.split('_')
+                    if visible == '0':
+                        joint_.append(-1)
+                        joint_.append(-1)
+                    else:
+                        joint_.append(int(x))
+                        joint_.append(int(y))
+            writerdress.writerow(joint)
+            # writerdress.writerow(joint_)
+            # if cat == 'outwear':
+            for i, cord in enumerate(keypoints):
+                if i in outwear:
+                    joint.append(cord)
+                    x, y, visible = cord.split('_')
+                    if visible == '0':
+                        joint_.append(-1)
+                        joint_.append(-1)
+                    else:
+                        joint_.append(int(x))
+                        joint_.append(int(y))
+            writeroutwear.writerow(joint)
                 # writeroutwear.writerow(joint_)
-            if cat == 'skirt':
-                for i, cord in enumerate(keypoints):
-                    if i in skirt:
-                        joint.append(cord)
-                        x, y, visible = cord.split('_')
-                        if visible == '0':
-                            joint_.append(-1)
-                            joint_.append(-1)
-                        else:
-                            joint_.append(int(x))
-                            joint_.append(int(y))
-                writerskirt.writerow(joint)
+            # if cat == 'skirt':
+            for i, cord in enumerate(keypoints):
+                if i in skirt:
+                    joint.append(cord)
+                    x, y, visible = cord.split('_')
+                    if visible == '0':
+                        joint_.append(-1)
+                        joint_.append(-1)
+                    else:
+                        joint_.append(int(x))
+                        joint_.append(int(y))
+            writerskirt.writerow(joint)
                 # writerskirt.writerow(joint_)
-            if cat == 'trousers':
-                for i, cord in enumerate(keypoints):
-                    if i in trousers:
-                        joint.append(cord)
-                        x, y, visible = cord.split('_')
-                        if visible == '0':
-                            joint_.append(-1)
-                            joint_.append(-1)
-                        else:
-                            joint_.append(int(x))
-                            joint_.append(int(y))
-                writertrousers.writerow(joint)
+            # if cat == 'trousers':
+            for i, cord in enumerate(keypoints):
+                if i in trousers:
+                    joint.append(cord)
+                    x, y, visible = cord.split('_')
+                    if visible == '0':
+                        joint_.append(-1)
+                        joint_.append(-1)
+                    else:
+                        joint_.append(int(x))
+                        joint_.append(int(y))
+            writertrousers.writerow(joint)
                 # writertrousers.writerow(joint_)
     fblouse.close()
     fdress.close()
