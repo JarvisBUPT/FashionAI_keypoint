@@ -56,7 +56,7 @@ if __name__ == '__main__':
                 joints.append(v)
     print(joints)
     dataset = DataGenClothes(joints, params['img_directory'], "split_" + cat + ".csv",
-                             params['category'], cat)
+                             category, cat)
     dataset._create_train_table()
     dataset._randomize()
     dataset._create_sets()
@@ -68,7 +68,6 @@ if __name__ == '__main__':
                                      decay_step=params['decay_step'], dataset=dataset, name=name,
                                      logdir_train=params['log_dir_train'], logdir_test=params['log_dir_test'],
                                      tiny=params['tiny'], w_loss=params['weighted_loss'], joints=joints,
-                                     modif=False)
+                                     modif=True)
     model.generate_model()
-    model.training_init(nEpochs=params['nepochs'], epochSize=params['epoch_size'], saveStep=params['saver_step'],
-                        dataset=None)
+    model.training_init(nEpochs=params['nepochs'], epochSize=params['epoch_size'], saveStep=params['saver_step'])

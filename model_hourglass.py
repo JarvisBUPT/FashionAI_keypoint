@@ -19,7 +19,7 @@ class HourglassModelForClothes():
     def __init__(self, nFeat=512, nStack=4, nModules=1, nLow=4, outputDim=16, batch_size=16, drop_rate=0.2,
                  lear_rate=2.5e-4, decay=0.96, decay_step=2000, dataset=None, training=True, w_summary=True,
                  logdir_train=None, logdir_test=None, tiny=True, attention=False, modif=True, w_loss=False,
-                 name='tiny_hourglass', joints=None):
+                 name='model_hourglass', joints=None):
         """ Initializer
         Args:
             nStack				: number of stacks (stage/Hourglass modules)
@@ -144,7 +144,7 @@ l           logdir_train       : Directory to Train Log file
             if self.attention:
                 self.output = self._graph_mcam(self.img)
             else:
-                self.output = self._graph_hourglass(self.img)
+                self.output = self._graph_hourglass(self.img)  # (None, nbStacks, 64, 64, outputDim)
             graphTime = time.time()
             print('---Graph : Done (' + str(int(abs(graphTime - inputTime))) + ' sec.)')
             with tf.name_scope('loss'):
@@ -320,19 +320,18 @@ l           logdir_train       : Directory to Train Log file
         out_file.close()
         print('Training Record Saved')
 
-    def training_init(self, nEpochs=10, epochSize=1000, saveStep=100, dataset=None, load=None):
+    def training_init(self, nEpochs=10, epochSize=1000, saveStep=100, load=None):
         """ Initialize the training
         Args:
             nEpochs		: Number of Epochs to train
             epochSize		: Size of one Epoch
             saveStep		: Step to save 'train' summary (has to be lower than epochSize)
-            dataset		: Data Generator (see generator.py)
             load			: Model to load (None if training from scratch) (see README for further information)
         """
         with tf.name_scope('Session'):
             with tf.device(self.gpu):
                 self._init_global_variables()
-                self._define_saver_summary()
+                self._define_saver_summary(summary=True)
                 if load is not None:
                     self.saver.restore(self.Session, load)
                 # try:
@@ -371,7 +370,7 @@ l           logdir_train       : Directory to Train Log file
             raise ValueError('Train/Test directory not assigned')
         else:
             with tf.device(self.cpu):
-                self.saver = tf.train.Saver(max_to_keep=1, keep_checkpoint_every_n_hour=4)
+                self.saver = tf.train.Saver(max_to_keep=1)
             if summary:
                 with tf.device(self.gpu):
                     self.train_summary = tf.summary.FileWriter(self.logdir_train, tf.get_default_graph())
@@ -399,6 +398,8 @@ l           logdir_train       : Directory to Train Log file
         """Create the Network
         Args:
             inputs : TF Tensor (placeholder) of shape (None, 256, 256, 3) #TODO : Create a parameter for customize size
+        Retuens:
+            A Tensor,shape is (None, nbStacks, 64, 64, outputDim)
         """
         with tf.name_scope('model'):
             with tf.name_scope('preprocessing'):

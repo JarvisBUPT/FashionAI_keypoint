@@ -2,6 +2,8 @@ import tensorflow as tf
 import os
 import numpy as np
 from tensorflow.contrib.layers.python.layers.initializers import xavier_initializer
+from processconfig import process_config_clothes
+# import pwd
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 c = tf.constant(4.0)
@@ -32,12 +34,31 @@ y = tf.constant(np.arange(24, 48).reshape((2, 3, 4)), dtype=tf.float32)
 z = tf.constant(np.arange(48, 72).reshape((2, 3, 4)), dtype=tf.float32)
 cc = [x, y, z]
 stack = tf.stack([x], axis=1)
+params = process_config_clothes()
+logdir_train = os.path.join(os.getcwd(), params['log_dir_train'])
+print(os.getcwd())
+print(logdir_train)
+logdir_test = params['log_dir_test']
+
+loss = ...
+tf.summary.scalar("loss", loss)
+merged_summary = tf.summary.merge_all()
+
+init = tf.global_variable_initializer()
+
 with tf.Session() as sess:
-    sess.run(init)
+
     print(sess.run(x))
-    print(sess.run(stack))
-    print()
-    # print(sess.run(pad1))
+    s = sess.run(stack)
+    train_summary = tf.summary.FileWriter(logdir_train, tf.get_default_graph())
+    test_summary = tf.summary.FileWriter(logdir_test)
+    sess.run(init)
+    for i in range(100):
+        _, summary = sess.run([x, merged_summary])
+        test_summary.add_summary(summary, i)
+    # train_summary.add_summary(s)
+    # train_summary.flush()
+    # # print(sess.run(pad1))
     # print(sess.run(conv))
 
     # print(tf.get_default_graph().get_all_collection_keys())
