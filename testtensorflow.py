@@ -10,7 +10,7 @@ c = tf.constant(4.0)
 # print(c.graph is tf.get_default_graph())
 w = tf.Variable(tf.random_normal([5, 2], stddev=0.01))
 state = tf.Variable(0, name='counter')
-
+tf.matmul()
 one = tf.constant(1)
 new_value = tf.add(state, one)
 update = tf.assign(state, new_value)
