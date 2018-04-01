@@ -52,7 +52,7 @@ class DataGenClothes(object):
 
    """
 
-    def __init__(self, joints_list=None, img_dir=None, train_data_file=None, category=None, cat=None):
+    def __init__(self, params, joints_list=None, img_dir=None, train_data_file=None, category=None, cat=None):
         """ Initializer
         Args:
             joints_list			: List of joints condsidered
@@ -80,6 +80,7 @@ class DataGenClothes(object):
         self.img_dir = img_dir
         img_dir_temp = os.path.join(img_dir, "Images")
         print(img_dir)
+        print(params)
         for k in params['category']:
             img_dir_cat = os.path.join(img_dir_temp, k)
             self.images.extend(os.listdir(img_dir_cat))

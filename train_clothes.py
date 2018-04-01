@@ -55,7 +55,7 @@ if __name__ == '__main__':
             if i in params[cat]:
                 joints.append(v)
     print(joints)
-    dataset = DataGenClothes(joints, params['img_directory'], "split_" + cat + ".csv",
+    dataset = DataGenClothes(params, joints, params['img_directory'], "split_" + cat + ".csv",
                              category, cat)
     dataset._create_train_table()
     dataset._randomize()
