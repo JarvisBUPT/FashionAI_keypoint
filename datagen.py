@@ -258,6 +258,9 @@ class DataGenerator():
             box			: Bounding Box
             joints		: Array of joints
             boxp		: Box percentage (Use 20% to get a good bounding box)
+        Returns:
+            padding     : 需要在图像两边添加的pad
+            crop_box    : 以补零后的图片为坐标系框的（x的中心，y的中心，宽，高）
         """
         # 图片以左上角为（0,0）点，往左为x轴，往下为y轴
         # 由于img.shape返回值（1280,720,3）第一个参数1280代表高，第二个参数720代表宽，和平常理解的顺序相反，3表示RGB三种通道
@@ -267,9 +270,12 @@ class DataGenerator():
         print("j", j)
         print("height", height)
         print("width", width)
-        if box[0:2] == [-1, -1]:
-            j[joints == -1] = 1e5
-            box[0], box[1] = min(j[:, 0]), min(j[:, 1])
+        box[2], box[3] = max(j[:, 0]), max(j[:, 1])
+        # if box[0:2] == [-1, -1]:
+        #     j[joints == -1] = 1e5
+        j[j<0] = 1e5
+        print(j)
+        box[0], box[1] = min(j[:, 0]), min(j[:, 1])
         print("box1", box)
         crop_box = [box[0] - int(boxp * (box[2] - box[0])), box[1] - int(boxp * (box[3] - box[1])),
                     box[2] + int(boxp * (box[2] - box[0])), box[3] + int(boxp * (box[3] - box[1]))]

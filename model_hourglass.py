@@ -16,12 +16,13 @@ class HourglassModelForClothes():
     Please check README.txt for further information on model management.
     """
 
-    def __init__(self, nFeat=512, nStack=4, nModules=1, nLow=4, outputDim=16, batch_size=16, drop_rate=0.2,
+    def __init__(self, params, nFeat=512, nStack=4, nModules=1, nLow=4, outputDim=16, batch_size=16, drop_rate=0.2,
                  lear_rate=2.5e-4, decay=0.96, decay_step=2000, dataset=None, training=True, w_summary=True,
                  logdir_train=None, logdir_test=None, tiny=True, attention=False, modif=True, w_loss=False,
                  name='model_hourglass', joints=None):
         """ Initializer
         Args:
+            params              : config dict
             nStack				: number of stacks (stage/Hourglass modules)
             nFeat				: number of feature channels on conv layers
             nModules            ：Not Used
@@ -49,6 +50,7 @@ l           logdir_train       : Directory to Train Log file
                       'waistband_left', 'waistband_right', 'hemline_left', 'hemline_right', 'crotch',
                       'bottom_left_in', 'bottom_left_out', 'bottom_right_in', 'bottom_right_out']
 
+        self.params = params
         self.nStack = nStack
         self.nFeat = nFeat
         self.nModules = nModules
@@ -373,8 +375,12 @@ l           logdir_train       : Directory to Train Log file
                 self.saver = tf.train.Saver(max_to_keep=1)
             if summary:
                 with tf.device(self.gpu):
-                    self.train_summary = tf.summary.FileWriter(self.logdir_train, tf.get_default_graph())
-                    self.test_summary = tf.summary.FileWriter(self.logdir_test)
+                    summary_train_path = os.path.join(self.logdir_train, 'train')
+                    summary_test_path = os.path.join(self.logdir_test, 'test')
+                    self.train_summary = tf.summary.FileWriter(os.path.join(summary_train_path, self.params['name']),
+                                                               tf.get_default_graph())
+                    self.test_summary = tf.summary.FileWriter(os.path.join(summary_test_path, self.params['name']),
+                                                              self.logdir_test)
                     # self.weight_summary = tf.summary.FileWriter(self.logdir_train, tf.get_default_graph())
 
     def _init_global_variables(self):

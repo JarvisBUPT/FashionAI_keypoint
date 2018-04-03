@@ -44,6 +44,7 @@ from yolo_net import YOLONet
 from datagen import DataGenerator
 import config as cfg
 from filters import VideoFilters
+from datagen import DataGenerator
 
 
 class Inference():
@@ -271,10 +272,33 @@ if __name__ == '__main__':
     inf = Inference(config_file, 'hg_refined_200')
     dataset = DataGenerator(params['joint_list'], params['img_directory'], params['training_txt_file'],
                             remove_joints=params['remove_joints'])
-    img = dataset.open_img('000033016.jpg')
+    # img = dataset.open_img('000033016.jpg')
+    img = cv2.imread('000033016.jpg')
+    height = img.shape[0]
+    width = img.shape[1]
     img1 = cv2.resize(img, (256, 256))
     print(img.shape)
     print(img1.shape)
-    pJ=inf.predictJoints(img1)
-    print("pj = ", pJ)
-    print(pJ.shape)
+    predjoints = inf.predictJoints(img1)
+    print('predjoints', predjoints)
+    # predjoints = np.arange(48).reshape((24, 2))
+    joint_list = []
+    for i in range(predjoints.shape[0]):
+        joint_list.append(int(predjoints[i][1] / 256 * width))
+        joint_list.append(int(predjoints[i][0] / 256 * height))
+    joints = np.array(joint_list)
+    joints = joints.reshape((-1, 2))
+    joints = joints.astype(np.int32)
+    print(joints)
+    box = [-1, -1, -1, -1]
+    padd, cbox = dataset._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2)
+    print('padd:', padd, ' cbox:', cbox)
+    img_crop = dataset._crop_img(img, padd, cbox)
+    print(img_crop.shape)
+    dir_test = os.path.join(r'D:\DeepLearning\workspaces\FashionAI_keypoint', 'picture')
+    if not os.path.exists(dir_test):
+        os.makedirs(dir_test)
+    cv2.imwrite(os.path.join(dir_test, 'test.jpg'), img_crop)
+
+
+

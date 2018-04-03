@@ -60,7 +60,7 @@ if __name__ == '__main__':
     dataset._create_train_table()
     dataset._randomize()
     dataset._create_sets()
-    model = HourglassModelForClothes(nFeat=params['nfeats'], nStack=params['nstacks'], nModules=params['nmodules'],
+    model = HourglassModelForClothes(params, nFeat=params['nfeats'], nStack=params['nstacks'], nModules=params['nmodules'],
                                      nLow=params['nlow'], outputDim=num_joints,
                                      batch_size=params['batch_size'],
                                      attention=params['mcam'], training=True, drop_rate=params['dropout_rate'],

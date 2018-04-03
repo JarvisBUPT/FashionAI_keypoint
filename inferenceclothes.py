@@ -238,7 +238,7 @@ def predictallimage(params, category=None, model='hg_clothes_002_50'):
     Args:
         params:
     """
-    inf = InferenceClothes(p, model)
+    inf = InferenceClothes(params, model)
     img_test_dir = params['img_test_dir']
     img_dir_temp = os.path.join(img_test_dir, "Images")
     print(img_test_dir, category)
@@ -263,14 +263,14 @@ def predictallimage(params, category=None, model='hg_clothes_002_50'):
             img_category = value[1]
             print(img_name, params['img_test_dir'])
             try:
-                img = cv2.imread(os.path.join(params['img_test_dir'], img_name))
-                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-                height = img.shape[0]
-                width = img.shape[1]
+                img_src = cv2.imread(os.path.join(params['img_test_dir'], img_name))
+                # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                height = img_src.shape[0]
+                width = img_src.shape[1]
                 # print('height',height,'width',width)
-                img = cv2.resize(img, (256, 256))
+                img_resize = cv2.resize(img_src, (256, 256))
                 # print(img.shape)
-                predjoints = inf.predictJoints(img)
+                predjoints = inf.predictJoints(img_resize)
                 # predjoints = np.arange(48).reshape((24, 2))
                 joints = []
                 joints.append(img_name)
@@ -291,5 +291,5 @@ if __name__ == '__main__':
     params = process_config_clothes()
     print(params)
     starttime = time()
-    predictallimage(params,params['category'])
+    predictallimage(params, params['category'])
     print("load model and test images in", time() - starttime, " sec")

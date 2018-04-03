@@ -35,7 +35,7 @@ class PredictClothes():
             config_dict	: config_dict
         """
         self.params = config_dict
-        self.HG = HourglassModelForClothes(nFeat=self.params['nfeats'], nStack=self.params['nstacks'],
+        self.HG = HourglassModelForClothes(self.params, nFeat=self.params['nfeats'], nStack=self.params['nstacks'],
                                  nModules=self.params['nmodules'], nLow=self.params['nlow'],
                                  outputDim=self.params['num_joints'],
                                  batch_size=self.params['batch_size'], drop_rate=self.params['dropout_rate'],
