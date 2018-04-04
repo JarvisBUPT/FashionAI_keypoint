@@ -127,6 +127,6 @@ if __name__ == '__main__':
         cat = ''
     print('categoty =', category)
     model = params['name'] + cat + "_" + epoch
-    print(model)
+    print('model name:', model)
     # model = params['name'] + "_" + epoch
     predict_one_category(params, category, model)
