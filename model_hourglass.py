@@ -282,7 +282,10 @@ l           logdir_train       : Directory to Train Log file
                     int(epochfinishTime - epochstartTime)) + ' sec.' + ' -avg_time/batch: ' + str(
                     ((epochfinishTime - epochstartTime) / epochSize))[:4] + ' sec.')
                 with tf.name_scope('save'):
-                    self.saver.save(self.Session, os.path.join(os.getcwd(), str(self.name + '_' + str(epoch + 1))))
+                    path = os.path.join(self.logdir_train, 'model', self.params['name'], self.name)
+                    if not os.path.exists(path):
+                        os.makedirs(path)
+                    self.saver.save(self.Session, os.path.join(path, str(self.name + '_' + str(epoch + 1))))
                 self.resume['loss'].append(cost)
                 # Validation Set
                 accuracy_array = np.array([0.0] * len(self.joint_accur))
@@ -311,7 +314,10 @@ l           logdir_train       : Directory to Train Log file
         Args:
             record		: record dictionnary
         """
-        out_file = open(self.name + '_train_record.csv', 'w')
+        path = os.path.join(self.logdir_train, 'record', self.params['name'], self.name)
+        if not os.path.exists(path):
+            os.makedirs(path)
+        out_file = open(os.path.join(path, self.name + '_train_record.csv'), 'w')
         for line in range(len(record['accur'])):
             out_string = ''
             labels = [record['loss'][line]] + [record['err'][line]] + record['accur'][line]
@@ -375,12 +381,10 @@ l           logdir_train       : Directory to Train Log file
                 self.saver = tf.train.Saver(max_to_keep=1)
             if summary:
                 with tf.device(self.gpu):
-                    summary_train_path = os.path.join(self.logdir_train, 'train')
-                    summary_test_path = os.path.join(self.logdir_test, 'test')
-                    self.train_summary = tf.summary.FileWriter(os.path.join(summary_train_path, self.params['name']),
-                                                               tf.get_default_graph())
-                    self.test_summary = tf.summary.FileWriter(os.path.join(summary_test_path, self.params['name']),
-                                                              self.logdir_test)
+                    summary_train_path = os.path.join(self.logdir_train, 'train', self.params['name'], self.name)
+                    summary_test_path = os.path.join(self.logdir_test, 'test',self.params['name'], self.name)
+                    self.train_summary = tf.summary.FileWriter(summary_train_path, tf.get_default_graph())
+                    self.test_summary = tf.summary.FileWriter(summary_test_path, tf.get_default_graph())
                     # self.weight_summary = tf.summary.FileWriter(self.logdir_train, tf.get_default_graph())
 
     def _init_global_variables(self):

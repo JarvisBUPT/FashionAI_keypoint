@@ -70,12 +70,12 @@ def predict_one_category(params, category, model='hg_clothes_001_199', ):
             cat_temp = value[1]
             if cat_temp == cat:
                 try:
-                    img = cv2.imread(os.path.join(params['img_test_dir'], img_name))
-                    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-                    height = img.shape[0]
-                    width = img.shape[1]
-                    img = cv2.resize(img, (256, 256))
-                    predjoints = inf.predictJoints(img)
+                    img_src = cv2.imread(os.path.join(params['img_test_dir'], img_name))
+                    # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                    height = img_src.shape[0]
+                    width = img_src.shape[1]
+                    img_resize = cv2.resize(img_src, (256, 256))
+                    predjoints = inf.predictJoints(img_resize)
                     # predjoints = np.arange(48).reshape((24, 2))
                     joints = []  # 暂存需要提交结果的一行数据
                     joints.append(img_name)
@@ -127,5 +127,6 @@ if __name__ == '__main__':
         cat = ''
     print('categoty =', category)
     model = params['name'] + cat + "_" + epoch
+    print(model)
     # model = params['name'] + "_" + epoch
     predict_one_category(params, category, model)

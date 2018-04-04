@@ -148,6 +148,7 @@ def predictallimage(params, model='hg_clothes_001_199'):
                 print('padd:', padd, ' cbox:', cbox)
                 img_crop = crop_img(img_src, padd, cbox)
                 print(img_crop.shape)
+                img_crop = cv2.resize(img_crop, (331, 331))
                 cv2.imwrite(os.path.join(img_dir_s, img_name), img_crop)
 
                 # except:
