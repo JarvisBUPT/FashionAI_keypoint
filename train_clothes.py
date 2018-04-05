@@ -41,11 +41,12 @@ if __name__ == '__main__':
         cat = ''
     print('categoty =', category, cat)
 
-    name = params['name'] + cat  # params['name']=hg_clothes_001+'blouse'
+    params['name'] = params['name'] + cat  # params['name']=hg_clothes_001+'blouse'
     if cat == '':
         num_joints = 24
     else:
         num_joints = len(params[cat])
+    params['num_joints'] = num_joints
     joint_list = params['joint_list']
     joints = []
     if cat == '':
@@ -54,20 +55,22 @@ if __name__ == '__main__':
         for i, v in enumerate(joint_list):
             if i in params[cat]:
                 joints.append(v)
-    print(joints)
+    # print(joints)
+    params['joints_list'] = joints
+    print('train params:', params)
     dataset = DataGenClothes(params, joints, params['img_directory'], "split_" + cat + ".csv",
                              category, cat)
     dataset._create_train_table()
     dataset._randomize()
     dataset._create_sets()
     model = HourglassModelForClothes(nFeat=params['nfeats'], nStack=params['nstacks'], nModules=params['nmodules'],
-                                     nLow=params['nlow'], outputDim=num_joints,
+                                     nLow=params['nlow'], outputDim=params['num_joints'],
                                      batch_size=params['batch_size'],
                                      attention=params['mcam'], training=True, drop_rate=params['dropout_rate'],
                                      lear_rate=params['learning_rate'], decay=params['learning_rate_decay'],
-                                     decay_step=params['decay_step'], dataset=dataset, name=name,
+                                     decay_step=params['decay_step'], dataset=dataset, name=params['name'],
                                      logdir_train=params['log_dir_train'], logdir_test=params['log_dir_test'],
-                                     tiny=params['tiny'], w_loss=params['weighted_loss'], joints=joints,
+                                     tiny=params['tiny'], w_loss=params['weighted_loss'], joints=params['joints_list'],
                                      modif=True)
     model.generate_model()
     model.training_init(nEpochs=params['nepochs'], epochSize=params['epoch_size'], saveStep=params['saver_step'])

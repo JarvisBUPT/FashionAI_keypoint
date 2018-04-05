@@ -376,6 +376,7 @@ l           logdir_train       : Directory to Train Log file
             raise ValueError('Train/Test directory not assigned')
         else:
             with tf.device(self.cpu):
+                #self.saver = tf.train.Saver()
                 self.saver = tf.train.Saver(max_to_keep=1)
             if summary:
                 with tf.device(self.gpu):

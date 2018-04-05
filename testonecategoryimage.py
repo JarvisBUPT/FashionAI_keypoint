@@ -22,7 +22,7 @@ import numpy as np
 from inferenceclothes import InferenceClothes
 
 
-def predict_one_category(params, category, model='hg_clothes_001_199', ):
+def predict_one_category(params, category, model='hg_clothes_004blouse_100', ):
     """ predict all test image,write into result.csv
         Args:
             params       : the model  needed parameters
@@ -82,11 +82,11 @@ def predict_one_category(params, category, model='hg_clothes_001_199', ):
                     joints.append(cat_temp)
                     for i in range(24):
                         if i in params[cat]:
-                            for j,v in enumerate(params[cat]):
-                                if i ==v:
+                            for j, v in enumerate(params[cat]):
+                                if i == v:
                                     joints.append(
-                                str(int(predjoints[j][1] / 256 * width)) + '_' + str(
-                                    int(predjoints[j][0] / 256 * height)) + '_1')
+                                        str(int(predjoints[j][1] / 256 * width)) + '_' + str(
+                                            int(predjoints[j][0] / 256 * height)) + '_1')
                         else:
                             joints.append('-1_-1_-1')
                     writer.writerow(joints)
@@ -126,7 +126,8 @@ if __name__ == '__main__':
         category = params['category']
         cat = ''
     print('categoty =', category)
-    model = params['name'] + cat + "_" + epoch
-    print('model name:', model)
+    #model = './hourglass_saver/model/' + params['name'] + cat + '/' + params['name'] + cat + "_" + epoch
+    #print('model name:', model)
     # model = params['name'] + "_" + epoch
-    predict_one_category(params, category, model)
+    #predict_one_category(params, category, model)
+    predict_one_category(params, category)
