@@ -445,7 +445,7 @@ l           logdir_train       : Directory to Train Log file
         Args:
             inputs : TF Tensor (placeholder) of shape (None, 256, 256, 3) #TODO : Create a parameter for customize size
         Returns:
-
+            A Tensor : Dim is shape=(?, 4, 64, 64, num_joints), dtype=float32
         """
         with tf.name_scope('model'):
             with tf.name_scope('preprocessing'):

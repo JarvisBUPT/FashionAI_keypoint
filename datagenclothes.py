@@ -58,6 +58,7 @@ class DataGenClothes(object):
             img_dir				: Directory containing clothes category
             train_data_file		: csv file with training set data
             category    		: List of clothes category
+            cat                 : str for category of the image: blouse, dress, outwear, skirt, trousers, ''
         Instance Var:
             self.joints_list    : List of name of clothes Keypoint
             self.category       : List of clothes category
@@ -472,15 +473,16 @@ class DataGenClothes(object):
             color	: Color Mode (RGB/BGR/GRAY)
         """
         img = cv2.imread(os.path.join(self.img_dir, name))
-        if color == 'RGB':
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            return img
-        elif color == 'BGR':
-            return img
-        elif color == 'GRAY':
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        else:
-            print('Color mode supported: RGB/BGR. If you need another mode do it yourself :p')
+        return img
+        # if color == 'RGB':
+        #     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        #     return img
+        # elif color == 'BGR':
+        #     return img
+        # elif color == 'GRAY':
+        #     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # else:
+        #     print('Color mode supported: RGB/BGR. If you need another mode do it yourself :p')
 
     def plot_img(self, name, plot='cv2'):
         """ Plot an image

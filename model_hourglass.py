@@ -125,6 +125,10 @@ l           logdir_train       : Directory to Train Log file
 
     def generate_model(self):
         """ Create the complete graph
+         placeholder:
+            self.img        : dtype=tf.float32, shape=(None, 256, 256, 3)
+            self.weights    : dtype=tf.float32, shape=(None, self.outDim)
+            self.gtMaps     : dtype=tf.float32, shape=(None, self.nStack, 64, 64, self.outDim)
         """
         startTime = time.time()
         print('CREATE MODEL:')
@@ -280,7 +284,10 @@ l           logdir_train       : Directory to Train Log file
                     int(epochfinishTime - epochstartTime)) + ' sec.' + ' -avg_time/batch: ' + str(
                     ((epochfinishTime - epochstartTime) / epochSize))[:4] + ' sec.')
                 with tf.name_scope('save'):
-                    self.saver.save(self.Session, os.path.join(os.getcwd(), str(self.name + '_' + str(epoch + 1))))
+                    save_path = os.path.join(self.logdir_train, 'model', self.name)
+                    if not os.path.exists(save_path):
+                        os.makedirs(save_path)
+                    self.saver.save(self.Session, os.path.join(save_path, str(self.name + '_' + str(epoch + 1))))
                 self.resume['loss'].append(cost)
                 # Validation Set
                 accuracy_array = np.array([0.0] * len(self.joint_accur))
@@ -295,6 +302,7 @@ l           logdir_train       : Directory to Train Log file
                 valid_summary = self.Session.run(self.test_op, feed_dict={self.img: img_valid, self.gtMaps: gt_valid})
                 self.test_summary.add_summary(valid_summary, epoch)
                 self.test_summary.flush()
+                self.record_training(self.resume)
             print('Training Done')
             print('Resume:' + '\n' + '  Epochs: ' + str(nEpochs) + '\n' + '  n. Images: ' + str(
                 nEpochs * epochSize * self.batchSize))
@@ -308,7 +316,10 @@ l           logdir_train       : Directory to Train Log file
         Args:
             record		: record dictionnary
         """
-        out_file = open(self.name + '_train_record.csv', 'w')
+        record_path = os.path.join(self.logdir_train, 'record', self.name)
+        if not os.path.exists(record_path):
+            os.makedirs(record_path)
+        out_file = open(os.path.join(record_path, self.name + '_train_record.csv'), 'w')
         for line in range(len(record['accur'])):
             out_string = ''
             labels = [record['loss'][line]] + [record['err'][line]] + record['accur'][line]
@@ -366,15 +377,22 @@ l           logdir_train       : Directory to Train Log file
             logdir_train		: Path to train summary directory
             logdir_test		: Path to test summary directory
         """
-        if (self.logdir_train == None) or (self.logdir_test == None):
+        if (self.logdir_train is None) or (self.logdir_test is None):
             raise ValueError('Train/Test directory not assigned')
         else:
             with tf.device(self.cpu):
-                self.saver = tf.train.Saver()
+                self.saver = tf.train.Saver(max_to_keep=1)
             if summary:
                 with tf.device(self.gpu):
-                    self.train_summary = tf.summary.FileWriter(self.logdir_train, tf.get_default_graph())
-                    self.test_summary = tf.summary.FileWriter(self.logdir_test)
+                    train_path = os.path.join(self.logdir_train, 'summary', 'train', self.name)
+                    if not os.path.exists(train_path):
+                        os.makedirs(train_path)
+                    self.train_summary = tf.summary.FileWriter(train_path, tf.get_default_graph())
+
+                    test_path = os.path.join(self.logdir_train, 'summary', 'test', self.name)
+                    if not os.path.exists(test_path):
+                        os.makedirs(test_path)
+                    self.test_summary = tf.summary.FileWriter(test_path, tf.get_default_graph())
                     # self.weight_summary = tf.summary.FileWriter(self.logdir_train, tf.get_default_graph())
 
     def _init_global_variables(self):
@@ -397,7 +415,9 @@ l           logdir_train       : Directory to Train Log file
     def _graph_hourglass(self, inputs):
         """Create the Network
         Args:
-            inputs : TF Tensor (placeholder) of shape (None, 256, 256, 3) #TODO : Create a parameter for customize size
+            inputs      : TF Tensor (placeholder) of shape (None, 256, 256, 3) #TODO : Create a parameter for customize size
+        Returns:
+            A Tensor    : Dim is shape=(None, 4, 64, 64, num_joints), dtype=float32
         """
         with tf.name_scope('model'):
             with tf.name_scope('preprocessing'):

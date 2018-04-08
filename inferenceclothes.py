@@ -233,20 +233,21 @@ class InferenceClothes():
         cam.release()
 
 
-def predictallimage(params, category=None, model='hg_clothes_002_50'):
+def predictallimage(params, model='hg_clothes_001_199'):
     """ predict all test image,write into result.csv
     Args:
         params:
     """
-    inf = InferenceClothes(p, model)
+    inf = InferenceClothes(params, model)
     img_test_dir = params['img_test_dir']
     img_dir_temp = os.path.join(img_test_dir, "Images")
-    print(img_test_dir, category)
     images = []
-    for k in category:
+    for k in params['category']:
         img_dir_cat = os.path.join(img_dir_temp, k)
         images.extend(os.listdir(img_dir_cat))
     print(images.__len__())
+    pre = PredictClothes(params)
+    print("Start predicting ...")
     csvresult = open('result.csv', 'w', newline='')  # 设置newline，否则两行之间会空一行
     f = open(params['training_txt_file'], 'r')
     firstline = f.readline().strip().split(',')
@@ -260,36 +261,36 @@ def predictallimage(params, category=None, model='hg_clothes_002_50'):
             value = value.strip().split(',')
             print(value)
             img_name = value[0]
-            img_category = value[1]
-            print(img_name, params['img_test_dir'])
-            try:
-                img = cv2.imread(os.path.join(params['img_test_dir'], img_name))
-                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-                height = img.shape[0]
-                width = img.shape[1]
-                # print('height',height,'width',width)
-                img = cv2.resize(img, (256, 256))
-                # print(img.shape)
-                predjoints = inf.predictJoints(img)
-                # predjoints = np.arange(48).reshape((24, 2))
-                joints = []
-                joints.append(img_name)
-                joints.append(img_category)
-                for i in range(predjoints.shape[0]):
-                    joints.append(
-                        str(int(predjoints[i][1] / 256 * width)) + '_' + str(
-                            int(predjoints[i][0] / 256 * height)) + '_1')
-                print(joints)
-                writer.writerow(joints)
-            except:
-                print("Not find the image:", img_name)
+            cat_temp = value[1]
+            print(img_name,cat_temp)
+            img = cv2.imread(os.path.join(params['img_test_dir'], img_name))
+            height = img.shape[0]
+            width = img.shape[1]
+            img_resize = cv2.resize(img, (256, 256))
+            predjoints = inf.predictJoints(img_resize)
+            # predjoints = np.arange(48).reshape((24, 2))
+            joints = []
+            joints_plot = []  # 传递给plt_skeleton可视化输出结果
+            joints.append(img_name)
+            joints.append(cat_temp)
+            for i in range(predjoints.shape[0]):
+                joints.append(
+                    str(int(predjoints[i][1] / 256 * width)) + '_' + str(
+                        int(predjoints[i][0] / 256 * height)) + '_1')
+                joints_plot.append(int(predjoints[i][1] / 256 * width))
+                joints_plot.append(int(predjoints[i][0] / 256 * height))
+            writer.writerow(joints)
+            img_dst = os.path.join(params['log_dir_test'], cat_temp)
+            if not os.path.exists(img_dst):
+                os.makedirs(img_dst)
+            img_plot = pre.plt_skeleton(img, joints_plot)
+            cv2.imwrite(os.path.join(img_dst, img_name.split('/')[2]), img_plot)
     csvresult.close()
     print("test images in", time() - starttime, " sec")
-
 
 if __name__ == '__main__':
     params = process_config_clothes()
     print(params)
     starttime = time()
-    predictallimage(params,params['category'])
+    predictallimage(params)
     print("load model and test images in", time() - starttime, " sec")
