@@ -103,40 +103,43 @@ class DataGenClothes(object):
         start_time = time.time()
 
         with open(self.train_data_file, "r") as f:
-            for value in islice(f, 1, None):  # 读取去掉第一行之后的数据
+            reader = csv.reader(f)
+            if self.cat == '':
+                next(reader)  # 对于全类型一起训练时，原始训练的csv需要去掉第一行
+            for value in reader:
+                # print(value)
                 joint_ = []  # 记录每张图的关节点坐标x1,y1,x2,y2...，并且对于不可见和不存在的点的坐标变成-1，-1
-                value = value.strip()
                 if value == '':
                     break
-                line = value.split(',')
-                name = line[0]
-                category = line[1]
-                if category == self.cat:
-                    self.train_table.append(name)
-                    keypoints = list(line[2:])  # 只截取关键点部位的坐标，x_y_visible,
-                    box = list([-1, -1, -1, -1])
-                    isvisible = []  # 每个关键点的可见度
-                    # joints = [map(int, cord.split('_')) for cord in keypoints]
-                    for cord in keypoints:
-                        x, y, visible = cord.split('_')
-                        if visible == '0':
-                            joint_.append(-1)
-                            joint_.append(-1)
-                        else:
-                            joint_.append(int(x))
-                            joint_.append(int(y))
-                        isvisible.append(int(visible))
-                    if joint_ == [-1] * len(joint_):
-                        self.no_intel.append(name)
+                name = value[0]
+                if not os.path.exists(os.path.join(self.img_dir, name)):
+                    self.no_intel.append(name)
+                    continue
+                category = value[1]
+                self.train_table.append(name)
+                keypoints = list(value[2:])  # 只截取关键点部位的坐标，x_y_visible,
+                box = list([-1, -1, -1, -1])
+                isvisible = []  # 每个关键点的可见度
+                # joints = [map(int, cord.split('_')) for cord in keypoints]
+                for cord in keypoints:
+                    x, y, visible = cord.split('_')
+                    if visible == '0':
+                        joint_.append(-1)
+                        joint_.append(-1)
                     else:
-                        joints = np.reshape(joint_, (-1, 2))
-                        w = [1] * joints.shape[0]
-                        for i in range(joints.shape[0]):
-                            if np.array_equal(joints[i], [-1, -1]):
-                                w[i] = 0
-                        self.data_dict[name] = {'category': category, 'box': box, 'joints': joints, 'weights': w,
-                                                'visible': isvisible}
+                        joint_.append(int(x))
+                        joint_.append(int(y))
+                    isvisible.append(int(visible))
+                else:
+                    joints = np.reshape(joint_, (-1, 2))
+                    w = [1] * joints.shape[0]
+                    for i in range(joints.shape[0]):
+                        if np.array_equal(joints[i], [-1, -1]):
+                            w[i] = 0
+                    self.data_dict[name] = {'category': category, 'box': box, 'joints': joints, 'weights': w,
+                                            'visible': isvisible}
         print("data_dict totals :", len(self.data_dict))
+        print("no_intel totals :", len(self.no_intel))
         print("_create_train_table %f  s" % (time.time() - start_time))
 
     def _randomize(self):

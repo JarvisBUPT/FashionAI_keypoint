@@ -259,7 +259,7 @@ def predictallimage(params, model='hg_clothes_001_199'):
         # with open('test_1.csv', "r") as f:
         for value in islice(f, 1, None):  # 读取去掉第一行之后的数据
             value = value.strip().split(',')
-            print(value)
+            # print(value)
             img_name = value[0]
             cat_temp = value[1]
             print(img_name, cat_temp)
@@ -290,8 +290,15 @@ def predictallimage(params, model='hg_clothes_001_199'):
 
 
 if __name__ == '__main__':
+    argv = sys.argv
+    if len(argv) == 2:
+        epoch = argv[1]
+    else:
+        raise ValueError('need one parameter ,which is the number of epoch\n'
+                         'for example: python inferenceclothes.py 100 ')
     params = process_config_clothes()
     print(params)
     starttime = time()
-    predictallimage(params)
+    model = './hourglass_saver/model/' + params['name'] + '/' + params['name'] + "_" + epoch
+    predictallimage(params, model)
     print("load model and test images in", time() - starttime, " sec")
