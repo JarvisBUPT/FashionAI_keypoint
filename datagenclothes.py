@@ -231,6 +231,8 @@ class DataGenClothes(object):
             width			: Wanted Width for the Heat Map
             joints			: Array of Joints
             maxlength		: Length of the Bounding Box
+        Returns:
+            hm              : Dim is
         """
         num_joints = joints.shape[0]
         hm = np.zeros((height, width, num_joints), dtype=np.float32)
@@ -255,39 +257,39 @@ class DataGenClothes(object):
         # 图片以左上角为（0,0）点，往左为x轴，往下为y轴
         # 由于img.shape返回值（1280,720,3）第一个参数1280代表高，第二个参数720代表宽，和平常理解的顺序相反，3表示RGB三种通道
         # 所以padding[0][0]将会在原始图片的上边添加0，padding[1][0]会在图片左边加0。
-        # padding = [[0, 0], [0, 0], [0, 0]]
-        # crop_box = [width // 2, height // 2, width, height]
         padding = [[0, 0], [0, 0], [0, 0]]
-        j = np.copy(joints)
-        box[2], box[3] = max(j[:, 0]), max(j[:, 1])
-        if box[0:2] == [-1, -1]:
-            j[joints == -1] = 1e5
-        box[0], box[1] = min(j[:, 0]), min(j[:, 1])
-        crop_box = [box[0] - int(boxp * (box[2] - box[0])), box[1] - int(boxp * (box[3] - box[1])),
-                    box[2] + int(boxp * (box[2] - box[0])), box[3] + int(boxp * (box[3] - box[1]))]
-        if crop_box[0] < 0: crop_box[0] = 0
-        if crop_box[1] < 0: crop_box[1] = 0
-        if crop_box[2] > width - 1: crop_box[2] = width - 1
-        if crop_box[3] > height - 1: crop_box[3] = height - 1
-        new_h = int(crop_box[3] - crop_box[1])
-        new_w = int(crop_box[2] - crop_box[0])
-        crop_box = [crop_box[0] + new_w // 2, crop_box[1] + new_h // 2, new_w, new_h]
-        if new_h > new_w:
-            # bounds是为了防止以框的中心为原点，以max(new_h, new_w)为直径画框时超出图片的大小，超出的部分即为pad，通过补0完成
-            bounds = (crop_box[0] - new_h // 2, crop_box[0] + new_h // 2)
-            if bounds[0] < 0:
-                padding[1][0] = abs(bounds[0])
-            if bounds[1] > width - 1:
-                padding[1][1] = abs(width - bounds[1])
-        elif new_h < new_w:
-            bounds = (crop_box[1] - new_w // 2, crop_box[1] + new_w // 2)
-            if bounds[0] < 0:
-                padding[0][0] = abs(bounds[0])
-            if bounds[1] > width - 1:
-                padding[0][1] = abs(height - bounds[1])
-        # 将框的中心左边加上padding[1][0]是因为_crop_img函数不是以（0,0）点为原点，因为图片加了pad之后原点可能会变
-        crop_box[0] += padding[1][0]
-        crop_box[1] += padding[0][0]
+        crop_box = [width // 2, height // 2, width, height]
+        # padding = [[0, 0], [0, 0], [0, 0]]
+        # j = np.copy(joints)
+        # box[2], box[3] = max(j[:, 0]), max(j[:, 1])
+        # if box[0:2] == [-1, -1]:
+        #     j[joints == -1] = 1e5
+        # box[0], box[1] = min(j[:, 0]), min(j[:, 1])
+        # crop_box = [box[0] - int(boxp * (box[2] - box[0])), box[1] - int(boxp * (box[3] - box[1])),
+        #             box[2] + int(boxp * (box[2] - box[0])), box[3] + int(boxp * (box[3] - box[1]))]
+        # if crop_box[0] < 0: crop_box[0] = 0
+        # if crop_box[1] < 0: crop_box[1] = 0
+        # if crop_box[2] > width - 1: crop_box[2] = width - 1
+        # if crop_box[3] > height - 1: crop_box[3] = height - 1
+        # new_h = int(crop_box[3] - crop_box[1])
+        # new_w = int(crop_box[2] - crop_box[0])
+        # crop_box = [crop_box[0] + new_w // 2, crop_box[1] + new_h // 2, new_w, new_h]
+        # if new_h > new_w:
+        #     # bounds是为了防止以框的中心为原点，以max(new_h, new_w)为直径画框时超出图片的大小，超出的部分即为pad，通过补0完成
+        #     bounds = (crop_box[0] - new_h // 2, crop_box[0] + new_h // 2)
+        #     if bounds[0] < 0:
+        #         padding[1][0] = abs(bounds[0])
+        #     if bounds[1] > width - 1:
+        #         padding[1][1] = abs(width - bounds[1])
+        # elif new_h < new_w:
+        #     bounds = (crop_box[1] - new_w // 2, crop_box[1] + new_w // 2)
+        #     if bounds[0] < 0:
+        #         padding[0][0] = abs(bounds[0])
+        #     if bounds[1] > width - 1:
+        #         padding[0][1] = abs(height - bounds[1])
+        # # 将框的中心左边加上padding[1][0]是因为_crop_img函数不是以（0,0）点为原点，因为图片加了pad之后原点可能会变
+        # crop_box[0] += padding[1][0]
+        # crop_box[1] += padding[0][0]
         return padding, crop_box
 
     def _crop_img(self, img, padding, crop_box):
@@ -422,36 +424,40 @@ class DataGenClothes(object):
             train_weights = np.zeros((batch_size, len(self.joints_list)), np.float32)
             i = 0
             while i < batch_size:
-                try:
-                    if sample_set == 'train':
-                        name = random.choice(self.train_set)
-                    elif sample_set == 'valid':
-                        name = random.choice(self.valid_set)
-                    joints = self.data_dict[name]['joints']
-                    box = self.data_dict[name]['box']
-                    weight = np.asarray(self.data_dict[name]['weights'])
-                    category = self.data_dict[name]['category']
-                    visible = self.data_dict[name]['visible']
-                    train_weights[i] = weight
-                    img = self.open_img(name)
-                    padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2)
-                    new_j = self._relative_joints(cbox, padd, joints, to_size=64)
-                    hm = self._generate_hm(64, 64, new_j, 64, weight)
-                    img = self._crop_img(img, padd, cbox)
-                    img = img.astype(np.uint8)
-                    img = scm.imresize(img, (256, 256))
-                    # img = cv2.resize(img, (256, 256))
-                    img, hm = self._augment(img, hm)
-                    hm = np.expand_dims(hm, axis=0)
-                    hm = np.repeat(hm, stacks, axis=0)
-                    if normalize:
-                        train_img[i] = img.astype(np.float32) / 255
-                    else:
-                        train_img[i] = img.astype(np.float32)
-                    train_gtmap[i] = hm
-                    i = i + 1
-                except:
-                    print('error file: ', name)
+                if sample_set == 'train':
+                    name = random.choice(self.train_set)
+                elif sample_set == 'valid':
+                    name = random.choice(self.valid_set)
+                joints = self.data_dict[name]['joints']
+                box = self.data_dict[name]['box']
+                weight = np.asarray(self.data_dict[name]['weights'])
+                category = self.data_dict[name]['category']
+                visible = self.data_dict[name]['visible']
+                train_weights[i] = weight
+                img = self.open_img(name)
+                padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2)
+                new_j = self._relative_joints(cbox, padd, joints, to_size=64)
+                hm = self._generate_hm(64, 64, new_j, 64, weight)
+                # TODO: save the heatmap
+                '''
+                hm_path = os.path.join('hourglass_saver', 'heatmap')
+                if not os.path.exists(hm_path):
+                    os.makedirs(hm_path)
+                cv2.imwrite(os.path.join(hm_path, name.split('/')[2]), hm)
+                '''
+                img = self._crop_img(img, padd, cbox)
+                img = img.astype(np.uint8)
+                img = scm.imresize(img, (256, 256))
+                # img = cv2.resize(img, (256, 256))
+                img, hm = self._augment(img, hm)
+                hm = np.expand_dims(hm, axis=0)
+                hm = np.repeat(hm, stacks, axis=0)
+                if normalize:
+                    train_img[i] = img.astype(np.float32) / 255
+                else:
+                    train_img[i] = img.astype(np.float32)
+                train_gtmap[i] = hm
+                i = i + 1
             yield train_img, train_gtmap, train_weights
 
     def generator(self, batchSize=16, stacks=4, norm=True, sample='train'):

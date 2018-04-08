@@ -69,6 +69,7 @@ def predict_one_category(params, category, model='hg_clothes_001_199', ):
             value = value.strip().split(',')
             img_name = value[0]
             cat_temp = value[1]
+            print(img_name, cat_temp)
             if cat_temp == cat:
                 img_path = os.path.join(params['img_test_dir'], img_name)
                 img = cv2.imread(img_path)
@@ -99,7 +100,7 @@ def predict_one_category(params, category, model='hg_clothes_001_199', ):
                 # cat_temp, img_name.split('/')[2]
                 if not os.path.exists(img_dst):
                     os.makedirs(img_dst)
-                img_plot = pre.plt_skeleton(img, joints_plot)
+                img_plot = pre.plt_skeleton(img, joints_plot, params['joint_list'])
                 cv2.imwrite(os.path.join(img_dst, img_name.split('/')[2]), img_plot)
     csvresult.close()
     print("test images in", time() - starttime, " sec")

@@ -61,18 +61,18 @@ class PredictClothes():
         /!\ Make sure those 2 lists have the same size
         """
         # BGR COLOR CODE
-        self.color = [(241, 242, 224), (196, 203, 128), (136, 150, 0), (64, 77, 0),
+        self.color = [(0, 0, 255), (196, 203, 128), (136, 150, 0), (64, 77, 0),
                       (201, 230, 200), (132, 199, 129), (71, 160, 67), (32, 94, 27),
                       (130, 224, 255), (7, 193, 255), (0, 160, 255), (0, 111, 255),
-                      (220, 216, 207), (174, 164, 144), (139, 125, 96), (100, 90, 69),
+                      (0, 255, 0), (174, 164, 144), (139, 125, 96), (100, 90, 69),
                       (252, 229, 179), (247, 195, 79), (229, 155, 3), (155, 87, 1),
                       (231, 190, 225), (200, 104, 186), (176, 39, 156), (162, 31, 123),
                       (210, 205, 255), (115, 115, 229), (80, 83, 239), (40, 40, 198)]
         # Color Names
-        self.color_name = ['teal01', 'teal02', 'teal03', 'teal04',
+        self.color_name = ['blue', 'teal02', 'teal03', 'teal04',
                            'green01', 'green02', 'green03', 'green04',
                            'amber01', 'amber02', 'amber03', 'amber04',
-                           'bluegrey01', 'bluegrey02', 'bluegrey03', 'bluegrey04',
+                           'lime', 'bluegrey02', 'bluegrey03', 'bluegrey04',
                            'lightblue01', 'lightblue02', 'lightblue03', 'lightblue04',
                            'purple01', 'purple02', 'purple03', 'purple04',
                            'red01', 'red02', 'red03', 'red04']
@@ -336,17 +336,18 @@ class PredictClothes():
         return out
 
     # -------------------------------PLOT FUNCTION------------------------------
-    def plt_skeleton(self, img, joints):
+    def plt_skeleton(self, img, joints, joints_name):
         """ Given an Image, returns Image with plotted limbs (TF VERSION)
         Args:
             img 	    : Original Image
-            joints      : list the return of relative cordinate of thr original image
+            joints      : List the return of relative cordinate of thr original image
+            joints_name : List, the name of joints, the length is the same of the joints
         """
         img_copy = np.copy(img)
-        for i in range(0, len(joints), 2):  # 一共24个点
+        for i in range(0, len(joints), 2):
             cv2.circle(img, (joints[i], joints[i + 1]), 3, self.color[i // 2], 1)
-            cv2.putText(img, str(i // 2), (joints[i], joints[i + 1]), cv2.FONT_HERSHEY_SIMPLEX, 0.6, self.color[i // 2],
-                        1)
+            cv2.putText(img, str(i // 2) + joints_name[i // 2], (joints[i], joints[i + 1]), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.3, self.color[i // 2], 1)
         return img
 
     def plt_skeleton_numpy(self, img, tocopy=True, thresh=0.2, sess=None, joint_plt=True):

@@ -262,7 +262,7 @@ def predictallimage(params, model='hg_clothes_001_199'):
             print(value)
             img_name = value[0]
             cat_temp = value[1]
-            print(img_name,cat_temp)
+            print(img_name, cat_temp)
             img = cv2.imread(os.path.join(params['img_test_dir'], img_name))
             height = img.shape[0]
             width = img.shape[1]
@@ -283,10 +283,11 @@ def predictallimage(params, model='hg_clothes_001_199'):
             img_dst = os.path.join(params['log_dir_test'], cat_temp)
             if not os.path.exists(img_dst):
                 os.makedirs(img_dst)
-            img_plot = pre.plt_skeleton(img, joints_plot)
+            img_plot = pre.plt_skeleton(img, joints_plot, params['joint_list'])
             cv2.imwrite(os.path.join(img_dst, img_name.split('/')[2]), img_plot)
     csvresult.close()
     print("test images in", time() - starttime, " sec")
+
 
 if __name__ == '__main__':
     params = process_config_clothes()
