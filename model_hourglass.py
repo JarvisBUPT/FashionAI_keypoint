@@ -8,6 +8,7 @@ import numpy as np
 import sys
 import datetime
 import os
+from vlad_pooling import VLAD
 
 
 class HourglassModelForClothes():
@@ -280,7 +281,7 @@ l           logdir_train       : Directory to Train Log file
                 self.train_summary.flush()
                 # self.weight_summary.add_summary(weight_summary, epoch)
                 # self.weight_summary.flush()
-                print('Epoch ' + str(epoch) + '/' + str(nEpochs) + ' done in ' + str(
+                print('Epoch ' + str(epoch + 1) + '/' + str(nEpochs) + ' done in ' + str(
                     int(epochfinishTime - epochstartTime)) + ' sec.' + ' -avg_time/batch: ' + str(
                     ((epochfinishTime - epochstartTime) / epochSize))[:4] + ' sec.')
                 with tf.name_scope('save'):
@@ -374,14 +375,16 @@ l           logdir_train       : Directory to Train Log file
     def _define_saver_summary(self, summary=True):
         """ Create Summary and Saver
         Args:
-            logdir_train		: Path to train summary directory
-            logdir_test		: Path to test summary directory
+            summary: A Boolean, if true will save the train_summary into the dir './logdir_train/summary/train/self.name'
+                and save test_summary into  the dir './logdir_train/summary/test/self.name'
+        Raises:
+            ValueError: if train or test directory not assigned
         """
         if (self.logdir_train is None) or (self.logdir_test is None):
             raise ValueError('Train/Test directory not assigned')
         else:
             with tf.device(self.cpu):
-                self.saver = tf.train.Saver(max_to_keep=1)
+                self.saver = tf.train.Saver(max_to_keep=4)
             if summary:
                 with tf.device(self.gpu):
                     train_path = os.path.join(self.logdir_train, 'summary', 'train', self.name)
@@ -417,7 +420,7 @@ l           logdir_train       : Directory to Train Log file
         Args:
             inputs      : TF Tensor (placeholder) of shape (None, 256, 256, 3) #TODO : Create a parameter for customize size
         Returns:
-            A Tensor    : Dim is shape=(None, 4, 64, 64, num_joints), dtype=float32
+            A Tensor, shape is (None, 4, 64, 64, num_joints), dtype=float32
         """
         with tf.name_scope('model'):
             with tf.name_scope('preprocessing'):
@@ -524,6 +527,9 @@ l           logdir_train       : Directory to Train Log file
                                                                       'out')
                         else:
                             out[self.nStack - 1] = self._conv(ll[self.nStack - 1], self.outDim, 1, 1, 'VALID', 'out')
+                        print('first', out[self.nStack - 1])
+                        # out[self.nStack - 1] = VLAD(n_clusters=24)(out[self.nStack - 1])
+                        print('first', out[self.nStack - 1])
                 if self.modif:
                     return tf.nn.sigmoid(tf.stack(out, axis=1, name='stack_output'), name='final_output')
                 else:
@@ -695,7 +701,7 @@ l           logdir_train       : Directory to Train Log file
         returns one minus the mean distance.
         Args:
             pred		: Prediction Batch (shape = num_image x 64 x 64)
-            gtMaps		: Ground Truth Batch (shape = num_image x 64 x 64)
+            gtMap		: Ground Truth Batch (shape = num_image x 64 x 64)
             num_image 	: (int) Number of images in batch
         Returns:
             (float)

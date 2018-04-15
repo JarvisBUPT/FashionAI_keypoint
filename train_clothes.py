@@ -73,5 +73,8 @@ if __name__ == '__main__':
                                      tiny=params['tiny'], w_loss=params['weighted_loss'], joints=joints,
                                      modif=False)
     model.generate_model()
+    # load =  './hourglass_saver/model/' + params['name'] + '/' + params['name'] + "_" + '37'
+    #load =  './hourglass_saver/model/hg_clothes_005/hg_clothes_005_69'
+    load = None
     model.training_init(nEpochs=params['nepochs'], epochSize=params['epoch_size'], saveStep=params['saver_step'],
-                        dataset=None)
+                        dataset=None, load=load)

@@ -1,11 +1,9 @@
 import configparser
-from hourglass_tiny import HourglassModel
-from datagen import DataGenerator
-from datagenclothes import DataGenClothes
-from model_hourglass import HourglassModelForClothes
 import os
 import sys
 import platform
+print(sys.path)
+# sys.path.append('./')
 
 
 def process_config_clothes():
@@ -25,8 +23,15 @@ def process_config_clothes():
     params = {}
     print(conf_file)
     config = configparser.ConfigParser()
+
+    print('dirname', os.path.dirname(__file__))
+    print('abspath', os.path.abspath(__file__))
+    print('first conf', os.getcwd())
+    os.chdir(os.path.dirname(__file__))
     config.read(conf_file)
+    print('last conf', os.getcwd())
     for section in config.sections():
+        print('config', section)
         if section == 'DataSetHG':
             for option in config.options(section):
                 params[option] = eval(config.get(section, option))
@@ -42,6 +47,9 @@ def process_config_clothes():
         if section == 'Saver':
             for option in config.options(section):
                 params[option] = eval(config.get(section, option))
+    print('return params from process_config_clothes', params)
+
+
     return params
 
 

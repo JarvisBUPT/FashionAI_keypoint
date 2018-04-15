@@ -5,7 +5,7 @@ import os
 sys.path.append('./')
 
 from model_hourglass import HourglassModelForClothes
-from time import time, clock
+from time import time, strftime
 import numpy as np
 import tensorflow as tf
 import scipy.io
@@ -236,7 +236,8 @@ class InferenceClothes():
 def predictallimage(params, model='hg_clothes_001_199'):
     """ predict all test image,write into result.csv
     Args:
-        params:
+        params: a dict about config.cfg
+        model: the name of the restore model
     """
     inf = InferenceClothes(params, model)
     img_test_dir = params['img_test_dir']
@@ -248,7 +249,7 @@ def predictallimage(params, model='hg_clothes_001_199'):
     print(images.__len__())
     pre = PredictClothes(params)
     print("Start predicting ...")
-    csvresult = open('result.csv', 'w', newline='')  # 设置newline，否则两行之间会空一行
+    csvresult = open('result_' + strftime('%m%d%H%M') + '.csv', 'w', newline='')  # 设置newline，否则两行之间会空一行
     f = open(params['training_txt_file'], 'r')
     firstline = f.readline().strip().split(',')
     f.close()
@@ -259,7 +260,7 @@ def predictallimage(params, model='hg_clothes_001_199'):
         # with open('test_1.csv', "r") as f:
         for value in islice(f, 1, None):  # 读取去掉第一行之后的数据
             value = value.strip().split(',')
-            # print(value)
+            print(value)
             img_name = value[0]
             cat_temp = value[1]
             print(img_name, cat_temp)
@@ -301,4 +302,5 @@ if __name__ == '__main__':
     starttime = time()
     model = './hourglass_saver/model/' + params['name'] + '/' + params['name'] + "_" + epoch
     predictallimage(params, model)
+    # predictallimage(params)
     print("load model and test images in", time() - starttime, " sec")
