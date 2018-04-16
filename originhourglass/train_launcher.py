@@ -4,10 +4,12 @@ TRAIN LAUNCHER
 """
 
 import configparser
-from hourglass_tiny import HourglassModel
-from datagen import DataGenerator
 import os
+import sys
+from originhourglass.datagen import DataGenerator
+from originhourglass.hourglass_tiny import HourglassModel
 
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 def process_config(conf_file):
     """

@@ -27,26 +27,20 @@ Abstract:
     This work is free of use, please cite the author if you use it!
 
 """
-import sys
 import os
-
-sys.path.append('./')
-
-from hourglass_tiny import HourglassModel
-from time import time, clock
+import sys
+from time import time
 import numpy as np
-import tensorflow as tf
-import scipy.io
-from train_launcher import process_config
+from originhourglass.train_launcher import process_config
 import cv2
-from predictClass import PredictProcessor
-from yolo_net import YOLONet
-from datagen import DataGenerator
-import config as cfg
-from filters import VideoFilters
+from originhourglass.predictClass import PredictProcessor
+from originhourglass.datagen import DataGenerator
+from video.filters import VideoFilters
+
+sys.path.append('..')
 
 
-class Inference():
+class Inference(object):
     """ Inference Class
     Use this file to make your prediction
     Easy to Use
@@ -275,6 +269,6 @@ if __name__ == '__main__':
     img1 = cv2.resize(img, (256, 256))
     print(img.shape)
     print(img1.shape)
-    pJ=inf.predictJoints(img1)
+    pJ = inf.predictJoints(img1)
     print("pj = ", pJ)
     print(pJ.shape)

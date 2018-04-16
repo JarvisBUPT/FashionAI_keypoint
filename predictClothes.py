@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
-import sys
 import os
+import sys
 
 sys.path.append('./')
 
-from model_hourglass import HourglassModelForClothes
-from time import time, clock, sleep
+from models.model_hourglass import HourglassModelForClothes
+from time import time, sleep
 import numpy as np
 import tensorflow as tf
 import scipy.io
-from processconfig import process_config_clothes
+from configs.processconfig import process_config_clothes
 import cv2
 # from yolo_tiny_net import YoloTinyNet
-from yolo_net import YOLONet
-from datagenclothes import DataGenClothes
-import config as cfg
+from models.yolo_net import YOLONet
+from originhourglass import config as cfg
 import threading
 
 
@@ -1081,7 +1080,7 @@ class PredictClothes():
         t = time()
         with self.graph.as_default():
             self.saver = tf.train.Saver(tf.contrib.framework.get_trainable_variables(scope='yolo'))
-            self.saver.restore(self.HG.Session, load)
+            self.saver.restore(self.HG.Session, os.pathload)
         print('Trained YOLO Loaded: ', time() - t, ' sec.')
 
     def iou(self, box1, box2):
@@ -1313,7 +1312,8 @@ if __name__ == '__main__':
     predict.links_joints()
     predict.model_init()
     print("load model ...")
-    predict.load_model(load='hg_clothes_001_199')
+    model = './hourglass_saver/model/' + params['name'] + '/' + params['name'] + "_" + 100
+    predict.load_model(load=model)
     print("load model end")
     predict.yolo_init()
     predict.restore_yolo(load='YOLO_small.ckpt')

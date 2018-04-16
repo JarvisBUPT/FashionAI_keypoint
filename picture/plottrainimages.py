@@ -1,11 +1,12 @@
 import csv
 import os
 import sys
+
 import cv2
 import numpy as np
 
 sys.path.append('../')
-from processconfig import process_config_clothes
+from configs.processconfig import process_config_clothes
 
 
 def plt_skeleton(img, joints, joints_name):

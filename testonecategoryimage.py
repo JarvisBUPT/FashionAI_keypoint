@@ -1,24 +1,15 @@
 # -*- coding: utf-8 -*-
-import sys
 import os
+import sys
 
 sys.path.append('./')
 
-from model_hourglass import HourglassModelForClothes
-from time import time, clock, sleep
-import numpy as np
-import tensorflow as tf
-import scipy.io
-from processconfig import process_config_clothes
+from time import time
+from configs.processconfig import process_config_clothes
 import cv2
 from predictClothes import PredictClothes
-from yolo_net import YOLONet
-from datagenclothes import DataGenClothes
-import config as cfg
-from filters import VideoFilters
 from itertools import islice
 import csv
-import numpy as np
 from inferenceclothes import InferenceClothes
 
 

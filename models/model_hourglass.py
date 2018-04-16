@@ -8,7 +8,6 @@ import numpy as np
 import sys
 import datetime
 import os
-from vlad_pooling import VLAD
 
 
 class HourglassModelForClothes():
@@ -67,8 +66,8 @@ l           logdir_train       : Directory to Train Log file
         self.nLow = nLow
         self.modif = modif
         self.dataset = dataset
-        self.cpu = '/cpu:0'
-        self.gpu = '/gpu:0'
+        self.cpu = None
+        self.gpu = None
         self.logdir_train = logdir_train
         self.logdir_test = logdir_test
         self.joints = joints
@@ -527,9 +526,9 @@ l           logdir_train       : Directory to Train Log file
                                                                       'out')
                         else:
                             out[self.nStack - 1] = self._conv(ll[self.nStack - 1], self.outDim, 1, 1, 'VALID', 'out')
-                        print('first', out[self.nStack - 1])
+                        print('first out[self.nStack - 1]', out[self.nStack - 1])
                         # out[self.nStack - 1] = VLAD(n_clusters=24)(out[self.nStack - 1])
-                        print('first', out[self.nStack - 1])
+                        print('vlad out[self.nStack - 1]', out[self.nStack - 1])
                 if self.modif:
                     return tf.nn.sigmoid(tf.stack(out, axis=1, name='stack_output'), name='final_output')
                 else:

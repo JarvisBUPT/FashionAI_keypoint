@@ -1,14 +1,13 @@
-import sys
 import os
+import sys
 
 sys.path.append('./')
 
 import numpy as np
-from time import time, clock
-from processconfig import process_config_clothes
+from configs.processconfig import process_config_clothes
 import cv2
 from inferenceclothes import InferenceClothes
-from datagenclothes import DataGenClothes
+from datagen.datagenclothes import DataGenClothes
 
 path_coat = '/home/sk39/workspace/cheng/clothes_tags/data/coat_length_labels/train/'
 save_coat = '/home/sk39/workspace/cheng/clothes_tags/data2/coat_length_labels/train/'

@@ -3,14 +3,11 @@ TRAIN LAUNCHER
 
 """
 
-import configparser
-from hourglass_tiny import HourglassModel
-from datagen import DataGenerator
-from datagenclothes import DataGenClothes
-from model_hourglass import HourglassModelForClothes
-import os
 import sys
-from processconfig import process_config_clothes
+
+from configs.processconfig import process_config_clothes
+from datagen.datagenclothes import DataGenClothes
+from models.model_hourglass import HourglassModelForClothes
 
 if __name__ == '__main__':
     print('--Parsing Config File')

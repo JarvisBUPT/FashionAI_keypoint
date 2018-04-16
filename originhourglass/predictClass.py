@@ -28,23 +28,23 @@ Abstract:
 
 """
 
-import sys
 import os
-import cv2
-sys.path.append('./')
-
-from hourglass_tiny import HourglassModel
-from time import time, clock, sleep
-import numpy as np
-import tensorflow as tf
-import scipy.io
-from train_launcher import process_config
-import cv2
-# from yolo_tiny_net import YoloTinyNet
-from yolo_net import YOLONet
-from datagen import DataGenerator
-import config as cfg
+import sys
 import threading
+from time import time, sleep
+
+import cv2
+import numpy as np
+import scipy.io
+import tensorflow as tf
+
+# from yolo_tiny_net import YoloTinyNet
+from models.yolo_net import YOLONet
+from originhourglass import config as cfg
+from originhourglass.hourglass_tiny import HourglassModel
+from originhourglass.train_launcher import process_config
+
+sys.path.append('..')
 
 
 class PredictProcessor():
@@ -76,7 +76,7 @@ class PredictProcessor():
                                  modif=False, name=self.params['name'], attention=self.params['mcam'],
                                  w_loss=self.params['weighted_loss'], joints=self.params['joint_list'])
         self.graph = tf.Graph()
-        self.src = 0    # video source
+        self.src = 0  # video source
         self.cam_res = (480, 640)  # webcam
 
     def color_palette(self):
@@ -218,7 +218,7 @@ class PredictProcessor():
         with self.graph.as_default():
             with tf.name_scope('prediction'):
                 self.pred_sigmoid = tf.nn.sigmoid(self.HG.output[:, self.HG.nStack - 1],
-                                                     name='sigmoid_final_prediction')
+                                                  name='sigmoid_final_prediction')
                 self.pred_final = self.HG.output[:, self.HG.nStack - 1]
                 self.joint_tensor = self._create_joint_tensor(self.HG.output[0], name='joint_tensor')
                 self.joint_tensor_final = self._create_joint_tensor(self.HG.output[0, -1], name='joint_tensor_final')
@@ -1105,7 +1105,9 @@ class PredictProcessor():
         t = time()
         with self.graph.as_default():
             self.saver = tf.train.Saver(tf.contrib.framework.get_trainable_variables(scope='yolo'))
-            self.saver.restore(self.HG.Session, load)
+            yolo_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'models', load)
+            print(yolo_path)
+            self.saver.restore(self.HG.Session, yolo_path)
         print('Trained YOLO Loaded: ', time() - t, ' sec.')
 
     def iou(self, box1, box2):

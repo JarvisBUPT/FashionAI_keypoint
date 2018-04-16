@@ -2,7 +2,10 @@ import configparser
 import os
 import sys
 import platform
+
 print(sys.path)
+
+
 # sys.path.append('./')
 
 
@@ -23,11 +26,7 @@ def process_config_clothes():
     params = {}
     print(conf_file)
     config = configparser.ConfigParser()
-
-    print('dirname', os.path.dirname(__file__))
-    print('abspath', os.path.abspath(__file__))
-    print('first conf', os.getcwd())
-    os.chdir(os.path.dirname(__file__))
+    os.chdir(os.path.dirname(os.path.dirname(__file__)))
     config.read(conf_file)
     print('last conf', os.getcwd())
     for section in config.sections():
@@ -48,7 +47,6 @@ def process_config_clothes():
             for option in config.options(section):
                 params[option] = eval(config.get(section, option))
     print('return params from process_config_clothes', params)
-
 
     return params
 

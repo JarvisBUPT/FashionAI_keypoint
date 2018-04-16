@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
-import config as cfg
+
+from originhourglass import config as cfg
 
 slim = tf.contrib.slim
 

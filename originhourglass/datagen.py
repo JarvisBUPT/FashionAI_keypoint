@@ -27,14 +27,15 @@ Abstract:
         This work is free of use, please cite the author if you use it!
 
 """
-import numpy as np
-import cv2
 import os
-import matplotlib.pyplot as plt
 import random
 import time
-from skimage import transform
+
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
 import scipy.misc as scm
+from skimage import transform
 
 
 class DataGenerator():
@@ -607,7 +608,7 @@ class DataGenerator():
 
 
 if __name__ == '__main__':
-    from train_launcher import process_config
+    from originhourglass.train_launcher import process_config
 
     print('--Parsing Config File')
     name = os.name
