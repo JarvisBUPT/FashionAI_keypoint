@@ -253,7 +253,7 @@ def predictallimage(params, model='hg_clothes_001_199'):
         # with open('test_1.csv', "r") as f:
         for value in islice(f, 1, None):  # 读取去掉第一行之后的数据
             value = value.strip().split(',')
-            print(value)
+            # print(value)
             img_name = value[0]
             cat_temp = value[1]
             print(img_name, cat_temp)
@@ -294,6 +294,7 @@ if __name__ == '__main__':
     print(params)
     starttime = time()
     model = './hourglass_saver/model/' + params['name'] + '/' + params['name'] + "_" + epoch
+    print(model)
     predictallimage(params, model)
     # predictallimage(params)
     print("load model and test images in", time() - starttime, " sec")

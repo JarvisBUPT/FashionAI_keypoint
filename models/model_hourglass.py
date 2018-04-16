@@ -212,6 +212,7 @@ l           logdir_train       : Directory to Train Log file
                 if load is not None:
                     print('Loading Trained Model')
                     t = time.time()
+                    os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
                     self.saver.restore(self.Session, load)
                     print('Model Loaded (', time.time() - t, ' sec.)')
                 else:

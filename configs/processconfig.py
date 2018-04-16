@@ -26,11 +26,13 @@ def process_config_clothes():
     params = {}
     print(conf_file)
     config = configparser.ConfigParser()
-    os.chdir(os.path.dirname(os.path.dirname(__file__)))
+    cwd = os.getcwd()
+    os.chdir(os.path.dirname(__file__))
     config.read(conf_file)
-    print('last conf', os.getcwd())
+    os.chdir(cwd)
+    # print('last conf', os.getcwd())
     for section in config.sections():
-        print('config', section)
+        # print('config', section)
         if section == 'DataSetHG':
             for option in config.options(section):
                 params[option] = eval(config.get(section, option))
@@ -46,8 +48,7 @@ def process_config_clothes():
         if section == 'Saver':
             for option in config.options(section):
                 params[option] = eval(config.get(section, option))
-    print('return params from process_config_clothes', params)
-
+    # print('return params from process_config_clothes', params)
     return params
 
 

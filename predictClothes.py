@@ -1080,7 +1080,7 @@ class PredictClothes():
         t = time()
         with self.graph.as_default():
             self.saver = tf.train.Saver(tf.contrib.framework.get_trainable_variables(scope='yolo'))
-            self.saver.restore(self.HG.Session, os.pathload)
+            self.saver.restore(self.HG.Session, load)
         print('Trained YOLO Loaded: ', time() - t, ' sec.')
 
     def iou(self, box1, box2):
