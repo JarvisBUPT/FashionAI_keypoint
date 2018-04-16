@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
-import sys
 import os
+import sys
 
 sys.path.append('./')
 
-from model_hourglass import HourglassModelForClothes
-from time import time, clock, sleep
+from models.model_hourglass import HourglassModelForClothes
+from time import time, sleep
 import numpy as np
 import tensorflow as tf
 import scipy.io
-from processconfig import process_config_clothes
+from configs.processconfig import process_config_clothes
 import cv2
 # from yolo_tiny_net import YoloTinyNet
-from yolo_net import YOLONet
-from datagenclothes import DataGenClothes
-import config as cfg
+from models.yolo_net import YOLONet
+from originhourglass import config as cfg
 import threading
 
 
@@ -36,19 +35,21 @@ class PredictClothes():
         """
         self.params = config_dict
         self.HG = HourglassModelForClothes(nFeat=self.params['nfeats'], nStack=self.params['nstacks'],
-                                 nModules=self.params['nmodules'], nLow=self.params['nlow'],
-                                 outputDim=self.params['num_joints'],
-                                 batch_size=self.params['batch_size'], drop_rate=self.params['dropout_rate'],
-                                 lear_rate=self.params['learning_rate'],
-                                 decay=self.params['learning_rate_decay'], decay_step=self.params['decay_step'],
-                                 dataset=None, training=False,
-                                 w_summary=True, logdir_test=self.params['log_dir_test'],
-                                 logdir_train=self.params['log_dir_train'], tiny=self.params['tiny'],
-                                 modif=False, name=self.params['name'], attention=self.params['mcam'],
-                                 w_loss=self.params['weighted_loss'], joints=self.params['joint_list'])
+                                           nModules=self.params['nmodules'], nLow=self.params['nlow'],
+                                           outputDim=self.params['num_joints'],
+                                           batch_size=self.params['batch_size'], drop_rate=self.params['dropout_rate'],
+                                           lear_rate=self.params['learning_rate'],
+                                           decay=self.params['learning_rate_decay'],
+                                           decay_step=self.params['decay_step'],
+                                           dataset=None, training=False,
+                                           w_summary=True, logdir_test=self.params['log_dir_test'],
+                                           logdir_train=self.params['log_dir_train'], tiny=self.params['tiny'],
+                                           modif=False, name=self.params['name'], attention=self.params['mcam'],
+                                           w_loss=self.params['weighted_loss'], joints=self.params['joint_list'])
         self.graph = tf.Graph()
         self.src = 0
         self.cam_res = (480, 640)
+        self.color_palette()
 
     def color_palette(self):
         """ Creates a color palette dictionnary
@@ -59,18 +60,18 @@ class PredictClothes():
         /!\ Make sure those 2 lists have the same size
         """
         # BGR COLOR CODE
-        self.color = [(241, 242, 224), (196, 203, 128), (136, 150, 0), (64, 77, 0),
+        self.color = [(0, 0, 255), (196, 203, 128), (136, 150, 0), (64, 77, 0),
                       (201, 230, 200), (132, 199, 129), (71, 160, 67), (32, 94, 27),
                       (130, 224, 255), (7, 193, 255), (0, 160, 255), (0, 111, 255),
-                      (220, 216, 207), (174, 164, 144), (139, 125, 96), (100, 90, 69),
+                      (0, 255, 0), (174, 164, 144), (139, 125, 96), (100, 90, 69),
                       (252, 229, 179), (247, 195, 79), (229, 155, 3), (155, 87, 1),
                       (231, 190, 225), (200, 104, 186), (176, 39, 156), (162, 31, 123),
                       (210, 205, 255), (115, 115, 229), (80, 83, 239), (40, 40, 198)]
         # Color Names
-        self.color_name = ['teal01', 'teal02', 'teal03', 'teal04',
+        self.color_name = ['blue', 'teal02', 'teal03', 'teal04',
                            'green01', 'green02', 'green03', 'green04',
                            'amber01', 'amber02', 'amber03', 'amber04',
-                           'bluegrey01', 'bluegrey02', 'bluegrey03', 'bluegrey04',
+                           'lime', 'bluegrey02', 'bluegrey03', 'bluegrey04',
                            'lightblue01', 'lightblue02', 'lightblue03', 'lightblue04',
                            'purple01', 'purple02', 'purple03', 'purple04',
                            'red01', 'red02', 'red03', 'red04']
@@ -90,8 +91,10 @@ class PredictClothes():
         Drawing Purposes
         You may need to modify this function
         """
-        self.links = {}
-        # Edit Links with your needed skeleton
+        self.links = {}  # {0: {'link': (0, 1), 'color': (196, 203, 128)},...}
+        # Edit Links with your needed skeleton LINKS length = 13
+        LINKS = [(0, 1), (1, 2), (2, 6), (6, 3), (3, 4), (4, 5), (6, 8), (8, 13), (13, 14), (14, 15), (8, 12), (12, 11),
+                 (11, 10)]
         LINKS = [(0, 1), (1, 2), (2, 6), (6, 3), (3, 4), (4, 5), (6, 8), (8, 13), (13, 14), (14, 15), (8, 12), (12, 11),
                  (11, 10)]
         self.LINKS_ACP = [(0, 1), (1, 2), (3, 4), (4, 5), (7, 8), (8, 9), (10, 11), (11, 12)]
@@ -145,7 +148,7 @@ class PredictClothes():
     def _create_joint_tensor(self, tensor, name='joint_tensor', debug=False):
         """ TensorFlow Computation of Joint Position
         Args:
-            tensor		: Prediction Tensor Shape [nbStack x 64 x 64 x outDim] or [64 x 64 x outDim]
+            tensor		: Prediction Tensor Shape [numStack x 64 x 64 x outDim] or [64 x 64 x outDim]
             name		: name of the tensor
         Returns:
             out			: Tensor of joints position
@@ -158,18 +161,20 @@ class PredictClothes():
         with tf.name_scope(name):
             shape = tensor.get_shape().as_list()
             if debug:
-                print(shape)
+                print(name, 'shape', shape)
             if len(shape) == 3:
                 resh = tf.reshape(tensor[:, :, 0], [-1])
             elif len(shape) == 4:
                 resh = tf.reshape(tensor[-1, :, :, 0], [-1])
             if debug:
-                print(resh)
+                print('resh', resh)
             arg = tf.argmax(resh, 0)
             if debug:
-                print(arg, arg.get_shape(), arg.get_shape().as_list())
+                print('arg', arg, ' arg.get_shape()', arg.get_shape(), 'shape list', arg.get_shape().as_list())
+            # print('stack', tf.stack([arg // tf.to_int64(shape[1]), arg % tf.to_int64(shape[1])], axis=-1))
             joints = tf.expand_dims(tf.stack([arg // tf.to_int64(shape[1]), arg % tf.to_int64(shape[1])], axis=-1),
                                     axis=0)
+            # print('joints', joints)
             for i in range(1, shape[-1]):
                 if len(shape) == 3:
                     resh = tf.reshape(tensor[:, :, i], [-1])
@@ -183,12 +188,16 @@ class PredictClothes():
 
     def _create_prediction_tensor(self):
         """ Create Tensor for prediction purposes
+            self.pred_sigmoid       : Dim is (batchSize, 64, 64, 24), dtype=float32
+            self.pred_final         : Dim is (batchSize, 64, 64, 24), dtype=float32
+            self.joint_tensor       : Dim is (outDim, 2), dtype=int64  对于一张图保存4个stack后的out
+            self.joint_tensor_final : Dim is (outDim, 2), dtype=int64  对于一张图保存图的最后一个stack的输出
         """
         with self.graph.as_default():
             with tf.name_scope('prediction'):
                 self.pred_sigmoid = tf.nn.sigmoid(self.HG.output[:, self.HG.nStack - 1],
-                                                     name='sigmoid_final_prediction')
-                self.pred_final = self.HG.output[:, self.HG.nStack - 1]  # 该变量没有使用
+                                                  name='sigmoid_final_prediction')
+                self.pred_final = self.HG.output[:, self.HG.nStack - 1]  # 该变量没有使用,用于记录图的最后输出的最后Tensor
                 self.joint_tensor = self._create_joint_tensor(self.HG.output[0], name='joint_tensor')
                 self.joint_tensor_final = self._create_joint_tensor(self.HG.output[0, -1], name='joint_tensor_final')
         print('Prediction Tensors Ready!')
@@ -326,22 +335,19 @@ class PredictClothes():
         return out
 
     # -------------------------------PLOT FUNCTION------------------------------
-    def plt_skeleton(self, img, tocopy=True, debug=False, sess=None):
+    def plt_skeleton(self, img, joints, joints_name):
         """ Given an Image, returns Image with plotted limbs (TF VERSION)
         Args:
-            img 	: Source Image shape = (256,256,3)
-            tocopy 	: (bool) False to write on source image / True to return a new array
-            debug	: (bool) for testing puposes
-            sess	: KEEP NONE
+            img 	    : Original Image
+            joints      : List the return of relative cordinate of thr original image
+            joints_name : List, the name of joints, the length is the same of the joints
         """
-        joints = self.joints_pred(np.expand_dims(img, axis=0), coord='img', debug=False, sess=sess)
-        if tocopy:
-            img = np.copy(img)
-        for i in range(len(self.links)):
-            position = self.givePixel(self.links[i]['link'], joints)
-            cv2.line(img, tuple(position[0])[::-1], tuple(position[1])[::-1], self.links[i]['color'][::-1], thickness=2)
-        if tocopy:
-            return img
+        img_copy = np.copy(img)
+        for i in range(0, len(joints), 2):
+            cv2.circle(img, (joints[i], joints[i + 1]), 3, self.color[i // 2], 1)
+            cv2.putText(img, str(i // 2) + joints_name[i // 2], (joints[i], joints[i + 1]), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.3, self.color[i // 2], 1)
+        return img
 
     def plt_skeleton_numpy(self, img, tocopy=True, thresh=0.2, sess=None, joint_plt=True):
         """ Given an Image, returns Image with plotted limbs (NUMPY VERSION)
@@ -1306,7 +1312,8 @@ if __name__ == '__main__':
     predict.links_joints()
     predict.model_init()
     print("load model ...")
-    predict.load_model(load='hg_clothes_005trousers_100')
+    model = './hourglass_saver/model/' + params['name'] + '/' + params['name'] + "_" + 100
+    predict.load_model(load=model)
     print("load model end")
     predict.yolo_init()
     predict.restore_yolo(load='YOLO_small.ckpt')

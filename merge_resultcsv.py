@@ -1,6 +1,6 @@
-from processconfig import process_config_clothes
-import os
 import csv
+
+from configs.processconfig import process_config_clothes
 
 if __name__ == '__main__':
     params = process_config_clothes()

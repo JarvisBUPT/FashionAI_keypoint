@@ -113,5 +113,6 @@ hourglass_saver
 hg_*.*
 YOLO_small.ckpt
 checkpoint
-result*
-mnist/
+result/result*
+result/split*
+configs/hourglass_saver/
