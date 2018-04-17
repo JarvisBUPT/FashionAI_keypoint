@@ -115,3 +115,4 @@ YOLO_small.ckpt
 checkpoint
 result*
 configs/hourglass_saver/
+nohup.out
