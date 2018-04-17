@@ -9,8 +9,11 @@ import sys
 import datetime
 import os
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from datagen.datagenclothes import DataGenClothes
 
-class HourglassModelForClothes():
+
+class HourglassModelForClothes(object):
     """ HourglassModel class: (to be renamed)
     Generate TensorFlow model to train and predict clothes keypooint from images
     Please check README.txt for further information on model management.
@@ -365,6 +368,8 @@ l           logdir_train       : Directory to Train Log file
 
     def _accuracy_computation(self):
         """ Computes accuracy tensor
+        Attributes:
+            self.joint_accur: list, the length is the length of self.joints.The value is every joint accur.
         """
         self.joint_accur = []
         for i in range(len(self.joints)):
@@ -686,8 +691,8 @@ l           logdir_train       : Directory to Train Log file
     def _compute_err(self, u, v):
         """ Given 2 tensors compute the euclidean distance (L2) between maxima locations
         Args:
-            u		: 2D - Tensor (Height x Width : 64x64 )
-            v		: 2D - Tensor (Height x Width : 64x64 )
+            u		: 2D - Tensor (Height x Width : 64x64 ).u is the predict
+            v		: 2D - Tensor (Height x Width : 64x64 ).v is the ground truth map
         Returns:
             (float) : Distance (in [0,1])
         """
@@ -696,6 +701,13 @@ l           logdir_train       : Directory to Train Log file
         return tf.divide(tf.sqrt(tf.square(tf.to_float(u_x - v_x)) + tf.square(tf.to_float(u_y - v_y))),
                          tf.to_float(91))
 
+    def _compute_clothes_err(self, category):
+        if self.dataset is None:
+            self.dataset = DataGenClothes(self.joints)
+
+    # TODO(Jason): write the function about NE(Normalized Error)
+    # def _get_distance_norm(self, cat, gtMap):
+    #     if cat in []
     def _accur(self, pred, gtMap, num_image):
         """ Given a Prediction batch (pred) and a Ground Truth batch (gtMaps),
         returns one minus the mean distance.
