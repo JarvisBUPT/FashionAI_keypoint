@@ -276,7 +276,7 @@ class DataGenClothes(object):
         j[joints == -1] = 1e5
         box[0], box[1] = min(j[:, 0]), min(j[:, 1])
         width_min, height_min = min(j[:, 0]), min(j[:, 1])
-        print('box', box)
+        # print('box', box)
         # crop_box (width_center,
         width_len = width_max - width_min  # 记录宽的长度
         heigth_len = height_max - height_min  # 记录高的长度
@@ -324,7 +324,7 @@ class DataGenClothes(object):
         #     max_lenght = 256
         img = img[crop_box[1] - max_lenght // 2:crop_box[1] + max_lenght // 2,
               crop_box[0] - max_lenght // 2:crop_box[0] + max_lenght // 2]
-        print('crop img shape', img.shape)
+        # print('crop img shape', img.shape)
         # cv2.imwrite('ce.jpg', img)
         # width = img[]
         return img
