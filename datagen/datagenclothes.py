@@ -113,7 +113,7 @@ class DataGenClothes(object):
             if self.cat == '':
                 next(reader)  # 对于全类型一起训练时，原始训练的csv需要去掉第一行
             for value in reader:
-                print(value)
+                # print(value)
                 joint_ = []  # 记录每张图的关节点坐标x1,y1,x2,y2...，并且对于不可见和不存在的点的坐标变成-1，-1
                 if len(value) == 0:
                     break
@@ -320,11 +320,12 @@ class DataGenClothes(object):
         """
         img = np.pad(img, padding, mode='constant')
         max_lenght = max(crop_box[2], crop_box[3])
+        # if max_lenght < 256:
+        #     max_lenght = 256
         img = img[crop_box[1] - max_lenght // 2:crop_box[1] + max_lenght // 2,
               crop_box[0] - max_lenght // 2:crop_box[0] + max_lenght // 2]
-        print('crop img shape', img)
-        print(os.getcwd())
-        cv2.imwrite('ce.jpg', img)
+        print('crop img shape', img.shape)
+        # cv2.imwrite('ce.jpg', img)
         # width = img[]
         return img
 
@@ -501,8 +502,8 @@ class DataGenClothes(object):
             name	: Name of the sample Images/blouse/155ee7793d159e227afb5f2e87ecf37b.jpg
             color	: Color Mode (RGB/BGR/GRAY)
         """
+        print(os.path.join(self.img_dir, name))
         img = cv2.imread(os.path.join(self.img_dir, name))
-        return img
         # if color == 'RGB':
         #     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         #     return img
@@ -512,6 +513,7 @@ class DataGenClothes(object):
         #     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         # else:
         #     print('Color mode supported: RGB/BGR. If you need another mode do it yourself :p')
+        return img
 
     def plot_img(self, name, plot='cv2'):
         """ Plot an image
@@ -625,19 +627,19 @@ if __name__ == '__main__':
     print('--Parsing Config File')
     params = process_config_clothes()
     print(params)
-    # dataset = DataGenClothes(params['joint_list'], params['img_directory'], params['training_txt_file'],
-    #                          params['category'])
-    dataset = DataGenClothes(params['joint_list'], params['img_directory'], 'train_1.csv',
+    dataset = DataGenClothes(params['joint_list'], params['img_directory'], params['training_txt_file'],
                              params['category'])
+    # dataset = DataGenClothes(params['joint_list'], params['img_directory'], 'train_1.csv',
+    #                          params['category'])
     dataset._create_train_table()
     dataset._randomize()
     dataset._create_sets()
-    img_name = "Images/blouse/00a20d1cb79af32d0d6a81af8acb2087.jpg"
-    img_name_win = r"Images\blouse\00a20d1cb79af32d0d6a81af8acb2087.jpg"
+    img_name = "Images/skirt/00ef62ab642415f214abbc675f28d5e9.jpg"
+    img_name_win = r"Images\skirt\00ef62ab642415f214abbc675f28d5e9.jpg"
     img = dataset.open_img(img_name_win)
     print(img.shape)
     box = [-1, -1, -1, -1]
-    padd, cbox = dataset._crop_data(img.shape[0], img.shape[1], box, dataset.data_dict[img_name]['joints'], boxp=0.2)
+    padd, cbox = dataset._crop_data(img.shape[0], img.shape[1], box, dataset.data_dict[img_name]['joints'], boxp=0.1)
     dataset._crop_img(img, padd, cbox)
     # new_j = dataset._relative_joints(cbox, padd, dataset.joints, to_size=64)
     # hm = dataset._generate_hm(64, 64, new_j, 64, dataset.weight)
