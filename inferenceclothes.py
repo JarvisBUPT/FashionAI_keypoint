@@ -291,7 +291,8 @@ if __name__ == '__main__':
         raise ValueError('need one parameter ,which is the number of epoch\n'
                          'for example: python inferenceclothes.py 100 ')
     params = process_config_clothes()
-    print(params)
+    # print(params)
+    print(params['learning_rate'])
     starttime = time()
     model = './hourglass_saver/model/' + params['name'] + '/' + params['name'] + "_" + epoch
     print(model)
