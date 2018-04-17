@@ -52,6 +52,9 @@ if __name__ == '__main__':
             if i in params[cat]:
                 joints.append(v)
     print(joints)
+    # print(params)
+    print('train model name:', params['name'])
+    print('batch size:%d iter:%d epoch:%d learning rate:%f mcam:%d' % (params['batch_size'], params['epoch_size'], params['nepochs'], params['learning_rate'], params['mcam']))
     if cat == '':
         dataset = DataGenClothes(joints, params['img_directory'], params['training_txt_file'], category, cat)
     else:

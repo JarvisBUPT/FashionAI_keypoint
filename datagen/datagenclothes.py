@@ -502,7 +502,7 @@ class DataGenClothes(object):
             name	: Name of the sample Images/blouse/155ee7793d159e227afb5f2e87ecf37b.jpg
             color	: Color Mode (RGB/BGR/GRAY)
         """
-        print(os.path.join(self.img_dir, name))
+        # print(os.path.join(self.img_dir, name))
         img = cv2.imread(os.path.join(self.img_dir, name))
         # if color == 'RGB':
         #     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)

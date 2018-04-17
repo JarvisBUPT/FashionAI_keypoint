@@ -295,7 +295,7 @@ if __name__ == '__main__':
     print(params['learning_rate'])
     starttime = time()
     model = './hourglass_saver/model/' + params['name'] + '/' + params['name'] + "_" + epoch
-    print(model)
+    print('test model name:', model)
     predictallimage(params, model)
     # predictallimage(params)
     print("load model and test images in", time() - starttime, " sec")
