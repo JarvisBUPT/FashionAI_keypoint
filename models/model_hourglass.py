@@ -135,7 +135,9 @@ l           logdir_train       : Directory to Train Log file
         """
         startTime = time.time()
         print('CREATE MODEL:')
+        # 1 设置输入placeholder、建图graph和损失
         with tf.device(self.gpu):
+            # 设置输入
             with tf.name_scope('inputs'):
                 # Shape Input Image - batchSize: None, height: 256, width: 256, channel: 3 (RGB)
                 self.img = tf.placeholder(dtype=tf.float32, shape=(None, 256, 256, 3), name='input_img')
@@ -148,12 +150,14 @@ l           logdir_train       : Directory to Train Log file
             # weights = tf.placeholder(dtype = tf.float32, shape = (None, self.nStack, 1, 1, self.outDim))
             inputTime = time.time()
             print('---Inputs : Done (' + str(int(abs(inputTime - startTime))) + ' sec.)')
+            # 设置图
             if self.attention:
                 self.output = self._graph_mcam(self.img)
             else:
                 self.output = self._graph_hourglass(self.img)
             graphTime = time.time()
             print('---Graph : Done (' + str(int(abs(graphTime - inputTime))) + ' sec.)')
+            # 设置损失
             with tf.name_scope('loss'):
                 if self.w_loss:
                     self.loss = tf.reduce_mean(self.weighted_bce_loss(), name='reduced_loss')
@@ -163,6 +167,7 @@ l           logdir_train       : Directory to Train Log file
                         name='cross_entropy_loss')
             lossTime = time.time()
             print('---Loss : Done (' + str(int(abs(graphTime - lossTime))) + ' sec.)')
+        # 2 计算准确率 调整学习率
         with tf.device(self.cpu):
             with tf.name_scope('accuracy'):
                 self._accuracy_computation()
@@ -175,20 +180,25 @@ l           logdir_train       : Directory to Train Log file
                                                      staircase=True, name='learning_rate')
             lrTime = time.time()
             print('---LR : Done (' + str(int(abs(accurTime - lrTime))) + ' sec.)')
+        # 3 设置优化器，最小化损失值
         with tf.device(self.gpu):
+            # 设置优化器rmsprop
             with tf.name_scope('rmsprop'):
                 self.rmsprop = tf.train.RMSPropOptimizer(learning_rate=self.lr)
             optimTime = time.time()
             print('---Optim : Done (' + str(int(abs(optimTime - lrTime))) + ' sec.)')
+            # 最小化损失函数值
             with tf.name_scope('minimizer'):
                 self.update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
                 with tf.control_dependencies(self.update_ops):
                     self.train_rmsprop = self.rmsprop.minimize(self.loss, self.train_step)
             minimTime = time.time()
             print('---Minimizer : Done (' + str(int(abs(optimTime - minimTime))) + ' sec.)')
+        # 4 初始化全部变量
         self.init = tf.global_variables_initializer()
         initTime = time.time()
         print('---Init : Done (' + str(int(abs(initTime - minimTime))) + ' sec.)')
+        # 5 保存loss,learning_rate等用于summary
         with tf.device(self.cpu):
             with tf.name_scope('training'):
                 tf.summary.scalar('loss', self.loss, collections=['train'])
@@ -221,8 +231,14 @@ l           logdir_train       : Directory to Train Log file
                 else:
                     print('Please give a Model in args (see README for further information)')
 
-    def _train(self, nEpochs=10, epochSize=1000, saveStep=500, validIter=10):
+    def _train(self, nEpochs=10, epochSize=1000, saveStep=500, reload_epoch=0, validIter=10):
         """
+        Args:
+            nEpochs: Integer, the number of total epoch
+            epochSize: Integer, the size of one epoch, just like iteration number
+            saveStep: Integer, save the summary file into hourglass_saver/sumary/train(or test)/(model_name)/
+            reload_epoch: Integer, If the train is stopped, you can reload the trained model and continue training
+            validIter: Integer, after one epoch, the iter number of using in valid set
         """
         with tf.name_scope('Train'):
             self.generator = self.dataset._aux_generator(self.batchSize, self.nStack, normalize=True,
@@ -234,7 +250,8 @@ l           logdir_train       : Directory to Train Log file
             self.resume['accur'] = []
             self.resume['loss'] = []
             self.resume['err'] = []
-            for epoch in range(nEpochs):
+            self.resume['time_per_epoch'] = []
+            for epoch in range(reload_epoch, nEpochs):
                 epochstartTime = time.time()
                 avg_cost = 0.
                 cost = 0.
@@ -296,13 +313,14 @@ l           logdir_train       : Directory to Train Log file
                 # Validation Set
                 accuracy_array = np.array([0.0] * len(self.joint_accur))
                 for i in range(validIter):
-                    img_valid, gt_valid, w_valid = next(self.generator)
+                    img_valid, gt_valid, w_valid = next(self.valid_gen)
                     accuracy_pred = self.Session.run(self.joint_accur,
                                                      feed_dict={self.img: img_valid, self.gtMaps: gt_valid})
                     accuracy_array += np.array(accuracy_pred, dtype=np.float32) / validIter
                 print('--Avg. Accuracy =', str((np.sum(accuracy_array) / len(accuracy_array)) * 100)[:6], '%')
                 self.resume['accur'].append(accuracy_pred)
                 self.resume['err'].append(np.sum(accuracy_array) / len(accuracy_array))
+                self.resume['time_per_epoch'].append(epochfinishTime - epochstartTime)
                 valid_summary = self.Session.run(self.test_op, feed_dict={self.img: img_valid, self.gtMaps: gt_valid})
                 self.test_summary.add_summary(valid_summary, epoch)
                 self.test_summary.flush()
@@ -348,12 +366,16 @@ l           logdir_train       : Directory to Train Log file
                 self._init_global_variables()
                 self._define_saver_summary()
                 if load is not None:
+                    reload_epoch = int(load.split('_')[-1])
                     self.saver.restore(self.Session, load)
+                else:
+                    reload_epoch = 0
+                print('reload_epoch', reload_epoch)
                 # try:
                 #     self.saver.restore(self.Session, load)
                 # except Exception:
                 #     print('Loading Failed! (Check README file for further information)')
-                self._train(nEpochs, epochSize, saveStep, validIter=10)
+                self._train(nEpochs, epochSize, saveStep, reload_epoch, validIter=10)
 
     def weighted_bce_loss(self):
         """ Create Weighted Loss Function
@@ -389,7 +411,7 @@ l           logdir_train       : Directory to Train Log file
             raise ValueError('Train/Test directory not assigned')
         else:
             with tf.device(self.cpu):
-                self.saver = tf.train.Saver(max_to_keep=4)
+                self.saver = tf.train.Saver(max_to_keep=10)
             if summary:
                 with tf.device(self.gpu):
                     train_path = os.path.join(self.logdir_train, 'summary', 'train', self.name)
@@ -543,7 +565,7 @@ l           logdir_train       : Directory to Train Log file
     def _conv(self, inputs, filters, kernel_size=1, strides=1, pad='VALID', name='conv'):
         """ Spatial Convolution (CONV2D)
         Args:
-            inputs			: Input Tensor (Data Type : NHWC)
+            inputs			: Input Tensor (Data Type : NHWC)[N, h, w, inputs_c]
             filters		    : Number of filters (channels)
             kernel_size	    : Size of kernel
             strides		    : Stride
@@ -551,6 +573,8 @@ l           logdir_train       : Directory to Train Log file
             name			: Name of the block
         Returns:
             conv			: Output Tensor (Convolved Input)
+            Dim is [N, (h - kernel_size)/stride +1, (h - kernel_size)/stride +1, f]
+            if you want to return [N, h, w, f], let kernel_size = h*(1-stride) + s ，then kernel_size=1, stride =1 ,h =h.
         """
         with tf.name_scope(name):
             # Kernel for convolution, Xavier Initialisation
@@ -565,14 +589,16 @@ l           logdir_train       : Directory to Train Log file
     def _conv_bn_relu(self, inputs, filters, kernel_size=1, strides=1, pad='VALID', name='conv_bn_relu'):
         """ Spatial Convolution (CONV2D) + BatchNormalization + ReLU Activation
         Args:
-            inputs			: Input Tensor (Data Type : NHWC)
+            inputs			: Input Tensor (Data Type : NHWC)[N, h, w, c]
             filters		    : Number of filters (channels)
             kernel_size	    : Size of kernel
             strides		    : Stride
             pad				: Padding Type (VALID/SAME) # DO NOT USE 'SAME' NETWORK BUILT FOR VALID
             name			: Name of the block
         Returns:
-            norm			: Output Tensor
+            norm			: Output Tensor.
+            Dim is [N, (h - kernel_size)/stride +1, (h - kernel_size)/stride +1, f]
+            if you want to return [N, h, w, f], let kernel_size = h*(1-stride) + s ，then kernel_size=1, stride =1 ,h =h.
         """
         with tf.name_scope(name):
             kernel = tf.Variable(tf.contrib.layers.xavier_initializer(uniform=False)(
@@ -588,11 +614,11 @@ l           logdir_train       : Directory to Train Log file
     def _conv_block(self, inputs, numOut, name='conv_block'):
         """ Convolutional Block
         Args:
-            inputs	: Input Tensor
+            inputs	: Input Tensor[N, h, w, c]
             numOut	: Desired output number of channel
             name	: Name of the block
         Returns:
-            conv_3	: Output Tensor
+            conv_3	: Output Tensor[N, h, w, numOut]
         """
         if self.tiny:
             with tf.name_scope(name):
@@ -621,11 +647,11 @@ l           logdir_train       : Directory to Train Log file
     def _skip_layer(self, inputs, numOut, name='skip_layer'):
         """ Skip Layer
         Args:
-            inputs	: Input Tensor
+            inputs	: Input Tensor[N, h, w, c]
             numOut	: Desired output number of channel
             name	: Name of the bloc
         Returns:
-            Tensor of shape (None, inputs.height, inputs.width, numOut)
+            Tensor of shape (None, inputs.height, inputs.width, numOut)[N, h, w, numOut]
         """
         with tf.name_scope(name):
             if inputs.get_shape().as_list()[3] == numOut:
@@ -637,9 +663,11 @@ l           logdir_train       : Directory to Train Log file
     def _residual(self, inputs, numOut, name='residual_block'):
         """ Residual Unit
         Args:
-            inputs	: Input Tensor
+            inputs	: Input Tensor[N, w, h, c]
             numOut	: Number of Output Features (channels)
             name	: Name of the block
+        Returns:
+            A Tensor. Dim is [N, h, w, numOut]
         """
         with tf.name_scope(name):
             convb = self._conv_block(inputs, numOut)
@@ -652,10 +680,12 @@ l           logdir_train       : Directory to Train Log file
     def _hourglass(self, inputs, n, numOut, name='hourglass'):
         """ Hourglass Module
         Args:
-            inputs	: Input Tensor
-            n		: Number of downsampling step
-            numOut	: Number of Output Features (channels)
+            inputs	: Input Tensor [N, h, w, inputs_c]
+            n		: Number of downsampling step , the default is 4 in the paper n=4
+            numOut	: Number of Output Features (channels) nFeat = 512
             name	: Name of the block
+        Return:
+            A Tensor. Dim is [N, h, w, numOut]
         """
         with tf.name_scope(name):
             # Upper Branch
@@ -852,6 +882,7 @@ l           logdir_train       : Directory to Train Log file
             r4 = self._residual(pool2, 128)
             r5 = self._residual(r4, 128)
             r6 = self._residual(r5, 256)
+            print('r6', r6)
         out = []
         inter = []
         inter.append(r6)
@@ -859,6 +890,7 @@ l           logdir_train       : Directory to Train Log file
             nModual = int(16 / self.nStack)
         else:
             nModual = int(8 / self.nStack)
+        print('nModual', nModual)
         with tf.name_scope('stacks'):
             for i in range(self.nStack):
                 with tf.name_scope('houglass_' + str(i + 1)):
@@ -886,4 +918,5 @@ l           logdir_train       : Directory to Train Log file
                     ll3 = self._lin(outmap, self.nFeat)
                     tmointer = tf.add_n([inter[i], outmap, ll3])
                     inter.append(tmointer)
+                print('out', out)
         return tf.stack(out, axis=1, name='final_output')

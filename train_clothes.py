@@ -2,7 +2,7 @@
 TRAIN LAUNCHER
 
 """
-
+import os
 import sys
 
 from configs.processconfig import process_config_clothes
@@ -54,7 +54,8 @@ if __name__ == '__main__':
     print(joints)
     # print(params)
     print('train model name:', params['name'])
-    print('batch size:%d iter:%d epoch:%d learning rate:%f mcam:%d' % (params['batch_size'], params['epoch_size'], params['nepochs'], params['learning_rate'], params['mcam']))
+    print('batch size:%d iter:%d epoch:%d learning rate:%f mcam:%d' % (
+    params['batch_size'], params['epoch_size'], params['nepochs'], params['learning_rate'], params['mcam']))
     if cat == '':
         dataset = DataGenClothes(joints, params['img_directory'], params['training_txt_file'], category, cat)
     else:
@@ -63,6 +64,17 @@ if __name__ == '__main__':
     dataset._create_train_table()
     dataset._randomize()
     dataset._create_sets()
+    preload = os.path.join(os.path.dirname(__file__), 'hourglass_saver', 'model', params['name'])
+    if os.path.exists(preload):
+        prepath_list = os.listdir(preload)
+        load_model_name = prepath_list[-1].split('.')[0]
+        load = os.path.join(preload, load_model_name)
+        print('load path:', load)
+        reload_epoch = prepath_list[-1].split('.')[0].split('_')[-1]  # 获取已有文件中最大周期数周期数
+        print('reload_epoch', reload_epoch)
+    else:
+        load = None
+        print('load is None')
     model = HourglassModelForClothes(nFeat=params['nfeats'], nStack=params['nstacks'], nModules=params['nmodules'],
                                      nLow=params['nlow'], outputDim=num_joints,
                                      batch_size=params['batch_size'],
@@ -74,7 +86,6 @@ if __name__ == '__main__':
                                      modif=False)
     model.generate_model()
     # load =  './hourglass_saver/model/' + params['name'] + '/' + params['name'] + "_" + '37'
-    #load =  './hourglass_saver/model/hg_clothes_005/hg_clothes_005_69'
-    load = None
+    # load =  './hourglass_saver/model/hg_clothes_005/hg_clothes_005_69'
     model.training_init(nEpochs=params['nepochs'], epochSize=params['epoch_size'], saveStep=params['saver_step'],
                         dataset=None, load=load)
