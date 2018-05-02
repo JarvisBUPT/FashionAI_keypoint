@@ -253,8 +253,8 @@ class DataGenClothes(object):
                 hm[:, :, i] = np.zeros((height, width))
         return hm
 
-    def _crop_data(self, height, width, box, joints, boxp=0.05):
-        """ Automatically returns a padding vector and a bounding box given
+    def _crop_data(self, height, width, box, joints, boxp=0.05, iscrop=False):
+        """ Automatically returns a padding vector and a bounding box given, will be used for the function _crop_img
         the size of the image and a list of joints.
         Args:
             height		: Original Height
@@ -263,12 +263,17 @@ class DataGenClothes(object):
             joints		: np array,is the coordinate (x, y) of joints, dim is (self.joints, 2),
                 if the joint is invisible, let x = -1 and y = -1
             boxp		: Box percentage (Use 20% to get a good bounding box)
+            iscrop      : Boolean, If True, crop the image according to box and boxp
+        Returns:
+            padding, crop_box.
         """
         # 图片以左上角为（0,0）点，往左为x轴，往下为y轴
         # 由于img.shape返回值（1280,720,3）第一个参数1280代表高，第二个参数720代表宽，和平常理解的顺序相反，3表示RGB三种通道
         # 所以padding[0][0]将会在原始图片的上边添加0，padding[1][0]会在图片左边加0。
-        # padding = [[0, 0], [0, 0], [0, 0]]
-        # crop_box = [width // 2, height // 2, width, height]
+        if not iscrop:
+            padding = [[0, 0], [0, 0], [0, 0]]
+            crop_box = [width // 2, height // 2, width, height]
+            return padding, crop_box
         padding = [[0, 0], [0, 0], [0, 0]]
         j = np.copy(joints)
         box[2], box[3] = max(j[:, 0]), max(j[:, 1])
@@ -315,8 +320,8 @@ class DataGenClothes(object):
         """ Given a bounding box and padding values return cropped image
         Args:
             img			: Source Image
-            padding	    : Padding
-            crop_box	: Bounding Box
+            padding	    : Padding, come from the function _crop_data return padding
+            crop_box	: Bounding Box, come from the function _crop_data return crop_box
         """
         img = np.pad(img, padding, mode='constant')
         max_lenght = max(crop_box[2], crop_box[3])
@@ -405,7 +410,7 @@ class DataGenClothes(object):
                         visible = self.data_dict[name]['visible']
                         if debug:
                             print(box)
-                        padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2)
+                        padd, cbox = self.F_crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2, iscrop=False)
                         if debug:
                             print(cbox)
                             print('maxl :', max(cbox[2], cbox[3]))
@@ -459,7 +464,7 @@ class DataGenClothes(object):
                 visible = self.data_dict[name]['visible']
                 train_weights[i] = weight
                 img = self.open_img(name)
-                padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2)
+                padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2, iscrop=False)
                 new_j = self._relative_joints(cbox, padd, joints, to_size=64)
                 hm = self._generate_hm(64, 64, new_j, 64, weight)
                 # TODO: save the heatmap
@@ -543,7 +548,7 @@ class DataGenClothes(object):
             img = self.open_img(self.train_set[i])
             w = self.data_dict[self.train_set[i]]['weights']
             padd, box = self._crop_data(img.shape[0], img.shape[1], self.data_dict[self.train_set[i]]['box'],
-                                        self.data_dict[self.train_set[i]]['joints'], boxp=0.0)
+                                        self.data_dict[self.train_set[i]]['joints'], boxp=0.0, iscrop=False)
             new_j = self._relative_joints(box, padd, self.data_dict[self.train_set[i]]['joints'], to_size=256)
             rhm = self._generate_hm(256, 256, new_j, 256, w)
             rimg = self._crop_img(img, padd, box)
@@ -605,7 +610,7 @@ class DataGenClothes(object):
                 category = self.data_dict[sample]['category']
                 visible = self.data_dict[sample]['visible']
                 img = self.open_img(sample)
-                padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.1)
+                padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.1, iscrop=False)
                 new_j = self._relative_joints(cbox, padd, joints, to_size=256)
                 joint_full = np.copy(joints)
                 max_l = max(cbox[2], cbox[3])
@@ -639,7 +644,7 @@ if __name__ == '__main__':
     img = dataset.open_img(img_name_win)
     print(img.shape)
     box = [-1, -1, -1, -1]
-    padd, cbox = dataset._crop_data(img.shape[0], img.shape[1], box, dataset.data_dict[img_name]['joints'], boxp=0.1)
+    padd, cbox = dataset._crop_data(img.shape[0], img.shape[1], box, dataset.data_dict[img_name]['joints'], boxp=0.1, iscrop=False)
     dataset._crop_img(img, padd, cbox)
     # new_j = dataset._relative_joints(cbox, padd, dataset.joints, to_size=64)
     # hm = dataset._generate_hm(64, 64, new_j, 64, dataset.weight)
@@ -656,5 +661,5 @@ if __name__ == '__main__':
     #     i += 1
     #     print("...")
     #     if i == 1: break
-    # # padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2)
+    # # padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2, iscrop=False)
     print("end")
