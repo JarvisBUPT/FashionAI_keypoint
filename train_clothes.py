@@ -17,10 +17,10 @@ if __name__ == '__main__':
     else:
         c = ''
     params = process_config_clothes()
-    category = []
+    category = []  # list, used for save the category
     if c == 'b':
         category.append('blouse')
-        cat = 'blouse'
+        cat = 'blouse'  # str, used for save the category
     elif c == 'd':
         category.append('dress')
         cat = 'dress'
@@ -55,12 +55,12 @@ if __name__ == '__main__':
     # print(params)
     print('train model name:', params['name'])
     print('batch size:%d iter:%d epoch:%d learning rate:%f mcam:%d' % (
-    params['batch_size'], params['epoch_size'], params['nepochs'], params['learning_rate'], params['mcam']))
+        params['batch_size'], params['epoch_size'], params['nepochs'], params['learning_rate'], params['mcam']))
     if cat == '':
         dataset = DataGenClothes(joints, params['img_directory'], params['training_txt_file'], category, cat)
     else:
-        dataset = DataGenClothes(joints, params['img_directory'], "split_" + cat + ".csv",
-                                 category, cat)
+        split_path = os.path.join(os.getcwd(), 'datagen', "split_" + cat + ".csv")
+        dataset = DataGenClothes(joints, params['img_directory'], split_path, category, cat)
     dataset._create_train_table()
     dataset._randomize()
     dataset._create_sets()

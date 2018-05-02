@@ -88,12 +88,11 @@ class DataGenClothes(object):
 
         self.images = []
         img_dir_temp = os.path.join(img_dir, "Images")
-        print(img_dir)
         for k in category:
             img_dir_cat = os.path.join(img_dir_temp, k)
             self.images.extend(os.listdir(img_dir_cat))
         # print(self.images)
-        print(self.images.__len__())
+        print('train images len', self.images.__len__())
 
     # --------------------Generator Initialization Methods ---------------------
 
@@ -101,8 +100,8 @@ class DataGenClothes(object):
     def _create_train_table(self):
         """ Create Table of samples from TEXT file
         """
-        self.train_table = []  # 记录图片名字的list
-        self.no_intel = []  # 记录没有任何关键点标志的图片name的list
+        self.train_table = set()  # 记录图片名字的set,最后会把set变成list
+        self.no_exist_images = set()  # 记录不存在的图片name的set
         self.data_dict = {}  # 以每张图片的name为key，记录每张图片的dict,key为"joints"、"visible"、"visible"、"category"
 
         print('Reading Train Data')
@@ -119,22 +118,22 @@ class DataGenClothes(object):
                     break
                 name = value[0]
                 if not os.path.exists(os.path.join(self.img_dir, name)):
-                    self.no_intel.append(name)
+                    self.no_exist_images.add(name)
                     continue
                 category = value[1]
-                self.train_table.append(name)
+                self.train_table.add(name)
                 keypoints = list(value[2:])  # 只截取关键点部位的坐标，x_y_visible,
                 box = list([-1, -1, -1, -1])
                 isvisible = []  # 每个关键点的可见度
                 # joints = [map(int, cord.split('_')) for cord in keypoints]
                 for cord in keypoints:
                     x, y, visible = cord.split('_')
-                    # if visible == '0':
-                    #     joint_.append(-1)
-                    #     joint_.append(-1)
-                    # else:
-                    joint_.append(int(x))
-                    joint_.append(int(y))
+                    if visible == '0':
+                        joint_.append(-1)
+                        joint_.append(-1)
+                    else:
+                        joint_.append(int(x))
+                        joint_.append(int(y))
                     isvisible.append(int(visible))
                 else:
                     joints = np.reshape(joint_, (-1, 2))
@@ -145,8 +144,9 @@ class DataGenClothes(object):
                     self.data_dict[name] = {'category': category, 'box': box, 'joints': joints, 'weights': w,
                                             'visible': isvisible}
         print("data_dict totals :", len(self.data_dict))
-        print("no_intel totals :", len(self.no_intel))
+        print("no_exist_images totals :", len(self.no_exist_images))
         print("_create_train_table %f  s" % (time.time() - start_time))
+        self.train_table = list(self.train_table)  # change set to list
 
     def _randomize(self):
         """ Randomize the set
