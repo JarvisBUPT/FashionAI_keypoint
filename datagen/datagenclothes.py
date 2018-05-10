@@ -450,7 +450,7 @@ class DataGenClothes(object):
         while True:
             train_img = np.zeros((batch_size, 256, 256, 3), dtype=np.float32)
             train_gtmap = np.zeros((batch_size, stacks, 64, 64, len(self.joints_list)), np.float32)
-            train_weights = np.zeros((batch_size, len(self.joints_list)), np.float32)
+            train_weights = np.zeros((batch_size, len(self.joints_list)), np.float16)
             i = 0
             while i < batch_size:
                 if sample_set == 'train':
@@ -509,15 +509,15 @@ class DataGenClothes(object):
         """
         # print(os.path.join(self.img_dir, name))
         img = cv2.imread(os.path.join(self.img_dir, name))
-        # if color == 'RGB':
-        #     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        #     return img
-        # elif color == 'BGR':
-        #     return img
-        # elif color == 'GRAY':
-        #     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        # else:
-        #     print('Color mode supported: RGB/BGR. If you need another mode do it yourself :p')
+        if color == 'RGB':
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            return img
+        elif color == 'BGR':
+            return img
+        elif color == 'GRAY':
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        else:
+            print('Color mode supported: RGB/BGR. If you need another mode do it yourself :p')
         return img
 
     def plot_img(self, name, plot='cv2'):

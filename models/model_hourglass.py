@@ -142,7 +142,7 @@ l           logdir_train       : Directory to Train Log file
                 # Shape Input Image - batchSize: None, height: 256, width: 256, channel: 3 (RGB)
                 self.img = tf.placeholder(dtype=tf.float32, shape=(None, 256, 256, 3), name='input_img')
                 if self.w_loss:
-                    self.weights = tf.placeholder(dtype=tf.float32, shape=(None, self.outDim))
+                    self.weights = tf.placeholder(dtype=tf.float16, shape=(None, self.outDim))
                 # Shape Ground Truth Map: batchSize x nStack x 64 x 64 x outDim
                 self.gtMaps = tf.placeholder(dtype=tf.float32, shape=(None, self.nStack, 64, 64, self.outDim))
             # TODO : Implement weighted loss function
