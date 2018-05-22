@@ -612,7 +612,7 @@ l           logdir_train       : Directory to Train Log file
             return norm
 
     def _conv_block(self, inputs, numOut, name='conv_block'):
-        """ Convolutional Block, have 3 conv, if tiny, have 1 conv
+        """ Convolutional Block, have 3 (BN + conv), if tiny, have 1 (BN + conv)
         Args:
             inputs	: Input Tensor[N, h, w, c]
             numOut	: Desired output number of channel
@@ -775,7 +775,7 @@ l           logdir_train       : Directory to Train Log file
         return norm
 
     def _pool_layer(self, inputs, numOut, name='pool_layer'):
-        """first max pool, then add two conv, final upsample
+        """first bn + relu + max pool, then add two (bn + relu +conv), final upsample
 
         Args:
             inputs: Input Tensor [N, h, w, inputs_c]
@@ -801,25 +801,21 @@ l           logdir_train       : Directory to Train Log file
 
         Args:
             inputs: Input Tensor [N, h, w, inputs_c]
-            lrnSize:1
-            itersize:3
+            lrnSize:Int, the sharedK filter_height and filter_width, default is 1
+            itersize:Int, the operation iter number, default is 3
             name: this operation name
 
         Returns:
-
+            Tensor, Dim is the same as input [N, h, w, inputs_c]
         """
         with tf.name_scope(name):
             numIn = inputs.get_shape().as_list()[3]
-            print('lrnSize', lrnSize)
             padding = np.floor(lrnSize / 2)
-            print('padding', padding)
             pad = tf.pad(inputs, np.array([[0, 0], [1, 1], [1, 1], [0, 0]]))
-            print('pad', pad)
             U = self._conv(pad, filters=1, kernel_size=3, strides=1)
             pad_2 = tf.pad(U, np.array([[0, 0], [padding, padding], [padding, padding], [0, 0]]))
             sharedK = tf.Variable(tf.contrib.layers.xavier_initializer(uniform=False)([lrnSize, lrnSize, 1, 1]),
                                   name='shared_weights')
-            print('sharedK', sharedK)
             Q = []
             C = []
             for i in range(itersize):
@@ -841,13 +837,13 @@ l           logdir_train       : Directory to Train Log file
 
         Args:
             inputs: Input Tensor [N, h, w, inputs_c]
-            lrnSize:
-            itersize:
-            usepart:
+            lrnSize: Int, the sharedK filter_height and filter_width, default is 1
+            itersize: Int, the operation iter number, default is 3
+            usepart: Whether for each part using the _attention_iter, if 0, don't use, else use.
             name: this operation name
 
         Returns:
-
+            Tensor, if usepart is 0, the return shape is the same input[N, h, w, inputs_c],else
         """
         with tf.name_scope(name):
             if usepart == 0:
@@ -863,7 +859,7 @@ l           logdir_train       : Directory to Train Log file
                 return tf.concat(pre, axis=3)
 
     def _residual_pool(self, inputs, numOut, name='residual_pool'):
-        """add the return of  _conv_block, _skip_layer, _pool_layer element-wise
+        """add the return of  _conv_block, _skip_layer, _pool_layer element-wise, corresponding to HRU in paper
 
         Args:
             inputs: Input Tensor [N, h, w, inputs_c]
@@ -903,16 +899,16 @@ l           logdir_train       : Directory to Train Log file
         """
 
         Args:
-            inputs: Input Tensor [N, h, w, inputs_c]
-            n: Number of downsampling in one stack (default: 4 => dim 64->4)
+            inputs: Input Tensor [N, h, w, inputs_c],default [N, 64, 64, 256]
+            n: Number of downsampling in one stack (default: 4 => dim 64->4), then 4, 3, 2, 1
             numOut: Number of Features/Channels in the convolution layers,default 256
                 (256 / 512 are good but you can set whatever you need )
-            imSize: default 64
+            imSize: default 64, then 64, 32, 16, 8, 4
             nModual: the number of modual cycles
             name: this operation name
 
         Returns:
-
+            Tensor, Dim is [N, h, w, numOut], default [N, 64, 64, 256]
         """
         with tf.name_scope(name):
             # ------------Upper Branch
@@ -932,8 +928,6 @@ l           logdir_train       : Directory to Train Log file
                     else:
                         tmpup = self._residual_pool(up[i - 1], numOut)
                     tmplow = self._residual(low[i - 1], numOut)
-                # print('tmpup', tmpup)
-                # print('tmplow', tmplow)
                 up.append(tmpup)
                 low.append(tmplow)
             # up[i] = tmpup
@@ -962,6 +956,14 @@ l           logdir_train       : Directory to Train Log file
         return self._bn_relu(l)
 
     def _graph_mcam(self, inputs):
+        """
+
+        Args:
+            inputs: Input Tensor [N, h, w, inputs_c], default is [N, 256, 256, 3]
+
+        Returns:
+            Tensor, Dim is [N, 4, 64, 64, num_joints]
+        """
         with tf.name_scope('preprocessing'):
             pad1 = tf.pad(inputs, np.array([[0, 0], [3, 3], [3, 3], [0, 0]]))
             cnv1_ = self._conv(pad1, filters=64, kernel_size=7, strides=1)
@@ -974,21 +976,18 @@ l           logdir_train       : Directory to Train Log file
             r4 = self._residual(pool2, 128)
             r5 = self._residual(r4, 128)
             r6 = self._residual(r5, 256)  # this end Dim is  [N, 64, 64, 256]
-            print('r6', r6)
         out = []
         inter = []
         inter.append(r6)
-        print('inter', inter)
-        if self.nLow == 3:
-            nModual = int(16 / self.nStack)
-        else:
-            nModual = int(8 / self.nStack)
-        print('nModual', nModual)
+        # if self.nLow == 3:
+        #     nModual = int(16 / self.nStack)
+        # else:
+        #     nModual = int(8 / self.nStack)
+        nModual = 1
         with tf.name_scope('stacks'):
             for i in range(self.nStack):
-                print('inter', i, inter[i])
                 with tf.name_scope('houglass_' + str(i + 1)):
-                    hg = self._hg_mcam(inter[i], self.nLow, self.nFeat, 64, nModual)
+                    hg = self._hg_mcam(inter[i], self.nLow, self.nFeat, 64, nModual)  # this end hg shape is (N, 64, 64, 256)
 
                 if i == self.nStack - 1:
                     ll1 = self._lin(hg, self.nFeat * 2)
@@ -1000,20 +999,16 @@ l           logdir_train       : Directory to Train Log file
                     ll1 = self._lin(hg, self.nFeat)
                     ll2 = self._lin(ll1, self.nFeat)
                     drop = tf.layers.dropout(ll2, rate=0.1, training=self.training)
-                    print('drop', drop)
                     if i > self.nStack // 2:
                         att = self._attention_part_crf(drop, 1, 3, 0)
                         tmpOut = self._attention_part_crf(att, 1, 3, 1)
                     else:
                         att = self._attention_part_crf(ll2, 1, 3, 0)
                         tmpOut = self._conv(att, filters=self.outDim, kernel_size=1, strides=1)
-                    print('att', att)
-                    print('tmpOut', tmpOut)
                 out.append(tmpOut)
                 if i < self.nStack - 1:
                     outmap = self._conv(tmpOut, filters=self.nFeat, kernel_size=1, strides=1)
                     ll3 = self._lin(outmap, self.nFeat)
                     tmointer = tf.add_n([inter[i], outmap, ll3])
                     inter.append(tmointer)
-                print('out', out)
         return tf.stack(out, axis=1, name='final_output')
