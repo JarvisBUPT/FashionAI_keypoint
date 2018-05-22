@@ -1,6 +1,9 @@
 import csv
 from itertools import islice
+import os
+import sys
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from configs.processconfig import process_config_clothes
 
 if __name__ == '__main__':

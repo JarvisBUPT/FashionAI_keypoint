@@ -573,7 +573,7 @@ l           logdir_train       : Directory to Train Log file
             name			: Name of the block
         Returns:
             conv			: Output Tensor (Convolved Input)
-            Dim is [N, (h - kernel_size)/stride +1, (h - kernel_size)/stride +1, f]
+            Dim is [N, (h - kernel_size)/stride +1, (w - kernel_size)/stride +1, f]
             if you want to return [N, h, w, f], let kernel_size = h*(1-stride) + s ，then kernel_size=1, stride =1 ,h =h.
         """
         with tf.name_scope(name):
@@ -612,7 +612,7 @@ l           logdir_train       : Directory to Train Log file
             return norm
 
     def _conv_block(self, inputs, numOut, name='conv_block'):
-        """ Convolutional Block
+        """ Convolutional Block, have 3 conv, if tiny, have 1 conv
         Args:
             inputs	: Input Tensor[N, h, w, c]
             numOut	: Desired output number of channel
@@ -762,11 +762,29 @@ l           logdir_train       : Directory to Train Log file
     # GitHub Torch7 Code: https://github.com/bearpaw/pose-attention
 
     def _bn_relu(self, inputs):
+        """add batch norm and relu to inputs
+
+        Args:
+            inputs: Input Tensor [N, h, w, inputs_c]
+
+        Returns:
+            Tensor, Dim is [N, h, w, inputs_c]
+        """
         norm = tf.contrib.layers.batch_norm(inputs, 0.9, epsilon=1e-5, activation_fn=tf.nn.relu,
                                             is_training=self.training)
         return norm
 
     def _pool_layer(self, inputs, numOut, name='pool_layer'):
+        """first max pool, then add two conv, final upsample
+
+        Args:
+            inputs: Input Tensor [N, h, w, inputs_c]
+            numOut: Number of Features/Channels in the convolution layers,default 256
+            name: this operation name
+
+        Returns:
+            Tensor, Dim is [N, h, w, numOut]
+        """
         with tf.name_scope(name):
             bnr_1 = self._bn_relu(inputs)
             pool = tf.contrib.layers.max_pool2d(bnr_1, [2, 2], [2, 2], padding='VALID')
@@ -779,14 +797,29 @@ l           logdir_train       : Directory to Train Log file
         return upsample
 
     def _attention_iter(self, inputs, lrnSize, itersize, name='attention_iter'):
+        """
+
+        Args:
+            inputs: Input Tensor [N, h, w, inputs_c]
+            lrnSize:1
+            itersize:3
+            name: this operation name
+
+        Returns:
+
+        """
         with tf.name_scope(name):
             numIn = inputs.get_shape().as_list()[3]
+            print('lrnSize', lrnSize)
             padding = np.floor(lrnSize / 2)
+            print('padding', padding)
             pad = tf.pad(inputs, np.array([[0, 0], [1, 1], [1, 1], [0, 0]]))
+            print('pad', pad)
             U = self._conv(pad, filters=1, kernel_size=3, strides=1)
             pad_2 = tf.pad(U, np.array([[0, 0], [padding, padding], [padding, padding], [0, 0]]))
             sharedK = tf.Variable(tf.contrib.layers.xavier_initializer(uniform=False)([lrnSize, lrnSize, 1, 1]),
                                   name='shared_weights')
+            print('sharedK', sharedK)
             Q = []
             C = []
             for i in range(itersize):
@@ -804,6 +837,18 @@ l           logdir_train       : Directory to Train Log file
         return pfeat
 
     def _attention_part_crf(self, inputs, lrnSize, itersize, usepart, name='attention_part'):
+        """
+
+        Args:
+            inputs: Input Tensor [N, h, w, inputs_c]
+            lrnSize:
+            itersize:
+            usepart:
+            name: this operation name
+
+        Returns:
+
+        """
         with tf.name_scope(name):
             if usepart == 0:
                 return self._attention_iter(inputs, lrnSize, itersize)
@@ -818,11 +863,32 @@ l           logdir_train       : Directory to Train Log file
                 return tf.concat(pre, axis=3)
 
     def _residual_pool(self, inputs, numOut, name='residual_pool'):
+        """add the return of  _conv_block, _skip_layer, _pool_layer element-wise
+
+        Args:
+            inputs: Input Tensor [N, h, w, inputs_c]
+            numOut: Number of Features/Channels in the convolution layers,default 256
+            name: this operation name
+
+        Returns:
+            Tensor, Dim is [N, h, w, numOut]
+        """
         with tf.name_scope(name):
             return tf.add_n(
                 [self._conv_block(inputs, numOut), self._skip_layer(inputs, numOut), self._pool_layer(inputs, numOut)])
 
     def _rep_residual(self, inputs, numOut, nRep, name='rep_residual'):
+        """repeat the _residual operation and _residual_pool operation. If nRep is 1, only has the  _residual operation
+
+        Args:
+            inputs: Input Tensor [N, h, w, inputs_c]
+            numOut: Number of Features/Channels in the convolution layers,default 256
+            nRep: Int, represent the number of repeat this operation
+            name: this operation name
+
+        Returns:
+            Tensor, Dim is [N, h, w, numOut]
+        """
         with tf.name_scope(name):
             out = [None] * nRep
             for i in range(nRep):
@@ -834,6 +900,20 @@ l           logdir_train       : Directory to Train Log file
             return out[nRep - 1]
 
     def _hg_mcam(self, inputs, n, numOut, imSize, nModual, name='mcam_hg'):
+        """
+
+        Args:
+            inputs: Input Tensor [N, h, w, inputs_c]
+            n: Number of downsampling in one stack (default: 4 => dim 64->4)
+            numOut: Number of Features/Channels in the convolution layers,default 256
+                (256 / 512 are good but you can set whatever you need )
+            imSize: default 64
+            nModual: the number of modual cycles
+            name: this operation name
+
+        Returns:
+
+        """
         with tf.name_scope(name):
             # ------------Upper Branch
             pool = tf.contrib.layers.max_pool2d(inputs, [2, 2], [2, 2], padding='VALID')
@@ -852,6 +932,8 @@ l           logdir_train       : Directory to Train Log file
                     else:
                         tmpup = self._residual_pool(up[i - 1], numOut)
                     tmplow = self._residual(low[i - 1], numOut)
+                # print('tmpup', tmpup)
+                # print('tmplow', tmplow)
                 up.append(tmpup)
                 low.append(tmplow)
             # up[i] = tmpup
@@ -866,6 +948,16 @@ l           logdir_train       : Directory to Train Log file
             return tf.add_n([up[-1], up_2], name='out_hg')
 
     def _lin(self, inputs, numOut, name='lin'):
+        """conv + bn +relu
+
+        Args:
+            inputs: Input Tensor [N, h, w, inputs_c]
+            numOut: Number of Features/Channels in the convolution layers,default 256
+            name: this operation name
+
+        Returns:
+            Tensor, Dim is [N, h, w, numOut]
+        """
         l = self._conv(inputs, filters=numOut, kernel_size=1, strides=1)
         return self._bn_relu(l)
 
@@ -881,11 +973,12 @@ l           logdir_train       : Directory to Train Log file
             pool2 = tf.contrib.layers.max_pool2d(r3, [2, 2], [2, 2], padding='VALID')
             r4 = self._residual(pool2, 128)
             r5 = self._residual(r4, 128)
-            r6 = self._residual(r5, 256)
+            r6 = self._residual(r5, 256)  # this end Dim is  [N, 64, 64, 256]
             print('r6', r6)
         out = []
         inter = []
         inter.append(r6)
+        print('inter', inter)
         if self.nLow == 3:
             nModual = int(16 / self.nStack)
         else:
@@ -893,6 +986,7 @@ l           logdir_train       : Directory to Train Log file
         print('nModual', nModual)
         with tf.name_scope('stacks'):
             for i in range(self.nStack):
+                print('inter', i, inter[i])
                 with tf.name_scope('houglass_' + str(i + 1)):
                     hg = self._hg_mcam(inter[i], self.nLow, self.nFeat, 64, nModual)
 
@@ -906,12 +1000,15 @@ l           logdir_train       : Directory to Train Log file
                     ll1 = self._lin(hg, self.nFeat)
                     ll2 = self._lin(ll1, self.nFeat)
                     drop = tf.layers.dropout(ll2, rate=0.1, training=self.training)
+                    print('drop', drop)
                     if i > self.nStack // 2:
                         att = self._attention_part_crf(drop, 1, 3, 0)
                         tmpOut = self._attention_part_crf(att, 1, 3, 1)
                     else:
                         att = self._attention_part_crf(ll2, 1, 3, 0)
                         tmpOut = self._conv(att, filters=self.outDim, kernel_size=1, strides=1)
+                    print('att', att)
+                    print('tmpOut', tmpOut)
                 out.append(tmpOut)
                 if i < self.nStack - 1:
                     outmap = self._conv(tmpOut, filters=self.nFeat, kernel_size=1, strides=1)
