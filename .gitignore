@@ -116,3 +116,4 @@ checkpoint
 result/result*
 result/split*
 configs/hourglass_saver/
+nohup.out

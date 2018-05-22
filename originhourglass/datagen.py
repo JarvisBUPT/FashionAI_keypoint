@@ -124,7 +124,7 @@ class DataGenerator():
         """ Create Table of samples from TEXT file
         """
         self.train_table = []
-        self.no_intel = []
+        self.no_exist_images = []
         self.data_dict = {}
         input_file = open(self.train_data_file, 'r')
         print('READING TRAIN DATA')
@@ -137,7 +137,7 @@ class DataGenerator():
             if self.toReduce:
                 joints = self._reduce_joints(joints)
             if joints == [-1] * len(joints):
-                self.no_intel.append(name)
+                self.no_exist_images.append(name)
             else:
                 joints = np.reshape(joints, (-1, 2))
                 w = [1] * joints.shape[0]

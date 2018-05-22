@@ -67,27 +67,32 @@ class DataGenClothes(object):
         """
 
         if joints_list is None:
-            self.joints_list = ['neckline_left', 'neckline_right', 'center_front', 'shoulder_left', 'shoulder_right',
-                                'armpit_left', 'armpit_right', 'waistline_left', 'waistline_right', 'cuff_left_in',
-                                'cuff_left_out', 'cuff_right_in', 'cuff_right_out', 'top_hem_left', 'top_hem_right',
-                                'waistband_left', 'waistband_right', 'hemline_left', 'hemline_right', 'crotch',
-                                'bottom_left_in', 'bottom_left_out', 'bottom_right_in', 'bottom_right_out']
-        else:
-            self.joints_list = joints_list
-
-        self.train_data_file = train_data_file
-        self.images = []
+            joints_list = ['neckline_left', 'neckline_right', 'center_front', 'shoulder_left', 'shoulder_right',
+                           'armpit_left', 'armpit_right', 'waistline_left', 'waistline_right', 'cuff_left_in',
+                           'cuff_left_out', 'cuff_right_in', 'cuff_right_out', 'top_hem_left', 'top_hem_right',
+                           'waistband_left', 'waistband_right', 'hemline_left', 'hemline_right', 'crotch',
+                           'bottom_left_in', 'bottom_left_out', 'bottom_right_in', 'bottom_right_out']
+        if img_dir is None:
+            img_dir = '/home/sk39/workspace/dataset/tianchi_clothes/train/'
+        if train_data_file is None:
+            train_data_file = '/home/sk39/workspace/dataset/tianchi_clothes/train/Annotations/train.csv'
+        if category is None:
+            category = ['blouse', 'dress', 'outwear', 'skirt', 'trousers']
+        if cat is None:
+            cat = ''
+        self.joints_list = joints_list
         self.img_dir = img_dir
+        self.train_data_file = train_data_file
+        self.category = category
+        self.cat = cat
+
+        self.images = []
         img_dir_temp = os.path.join(img_dir, "Images")
-        print(img_dir)
         for k in category:
             img_dir_cat = os.path.join(img_dir_temp, k)
             self.images.extend(os.listdir(img_dir_cat))
-
-        self.category = category
-        self.cat = cat
         # print(self.images)
-        print(self.images.__len__())
+        print('train images len', self.images.__len__())
 
     # --------------------Generator Initialization Methods ---------------------
 
@@ -95,8 +100,8 @@ class DataGenClothes(object):
     def _create_train_table(self):
         """ Create Table of samples from TEXT file
         """
-        self.train_table = []  # 记录图片名字的list
-        self.no_intel = []  # 记录没有任何关键点标志的图片name的list
+        self.train_table = set()  # 记录图片名字的set,最后会把set变成list
+        self.no_exist_images = set()  # 记录不存在的图片name的set
         self.data_dict = {}  # 以每张图片的name为key，记录每张图片的dict,key为"joints"、"visible"、"visible"、"category"
 
         print('Reading Train Data')
@@ -109,14 +114,14 @@ class DataGenClothes(object):
             for value in reader:
                 # print(value)
                 joint_ = []  # 记录每张图的关节点坐标x1,y1,x2,y2...，并且对于不可见和不存在的点的坐标变成-1，-1
-                if value == '':
+                if len(value) == 0:
                     break
                 name = value[0]
                 if not os.path.exists(os.path.join(self.img_dir, name)):
-                    self.no_intel.append(name)
+                    self.no_exist_images.add(name)
                     continue
                 category = value[1]
-                self.train_table.append(name)
+                self.train_table.add(name)
                 keypoints = list(value[2:])  # 只截取关键点部位的坐标，x_y_visible,
                 box = list([-1, -1, -1, -1])
                 isvisible = []  # 每个关键点的可见度
@@ -139,8 +144,9 @@ class DataGenClothes(object):
                     self.data_dict[name] = {'category': category, 'box': box, 'joints': joints, 'weights': w,
                                             'visible': isvisible}
         print("data_dict totals :", len(self.data_dict))
-        print("no_intel totals :", len(self.no_intel))
+        print("no_exist_images totals :", len(self.no_exist_images))
         print("_create_train_table %f  s" % (time.time() - start_time))
+        self.train_table = list(self.train_table)  # change set to list
 
     def _randomize(self):
         """ Randomize the set
@@ -235,7 +241,7 @@ class DataGenClothes(object):
             joints			: Array of Joints
             maxlength		: Length of the Bounding Box
         Returns:
-            hm              : Dim is
+            hm              : Dim is (H, W, num_joints)
         """
         num_joints = joints.shape[0]
         hm = np.zeros((height, width, num_joints), dtype=np.float32)
@@ -247,65 +253,85 @@ class DataGenClothes(object):
                 hm[:, :, i] = np.zeros((height, width))
         return hm
 
-    def _crop_data(self, height, width, box, joints, boxp=0.05):
-        """ Automatically returns a padding vector and a bounding box given
+    def _crop_data(self, height, width, box, joints, boxp=0.05, iscrop=False):
+        """ Automatically returns a padding vector and a bounding box given, will be used for the function _crop_img
         the size of the image and a list of joints.
         Args:
             height		: Original Height
             width		: Original Width
             box			: Bounding Box
-            joints		: Array of joints
+            joints		: np array,is the coordinate (x, y) of joints, dim is (self.joints, 2),
+                if the joint is invisible, let x = -1 and y = -1
             boxp		: Box percentage (Use 20% to get a good bounding box)
+            iscrop      : Boolean, If True, crop the image according to box and boxp
+        Returns:
+            padding, crop_box.
         """
         # 图片以左上角为（0,0）点，往左为x轴，往下为y轴
         # 由于img.shape返回值（1280,720,3）第一个参数1280代表高，第二个参数720代表宽，和平常理解的顺序相反，3表示RGB三种通道
         # 所以padding[0][0]将会在原始图片的上边添加0，padding[1][0]会在图片左边加0。
+        if not iscrop:
+            padding = [[0, 0], [0, 0], [0, 0]]
+            crop_box = [width // 2, height // 2, width, height]
+            return padding, crop_box
         padding = [[0, 0], [0, 0], [0, 0]]
-        crop_box = [width // 2, height // 2, width, height]
-        # padding = [[0, 0], [0, 0], [0, 0]]
-        # j = np.copy(joints)
-        # box[2], box[3] = max(j[:, 0]), max(j[:, 1])
-        # if box[0:2] == [-1, -1]:
-        #     j[joints == -1] = 1e5
-        # box[0], box[1] = min(j[:, 0]), min(j[:, 1])
-        # crop_box = [box[0] - int(boxp * (box[2] - box[0])), box[1] - int(boxp * (box[3] - box[1])),
-        #             box[2] + int(boxp * (box[2] - box[0])), box[3] + int(boxp * (box[3] - box[1]))]
-        # if crop_box[0] < 0: crop_box[0] = 0
-        # if crop_box[1] < 0: crop_box[1] = 0
-        # if crop_box[2] > width - 1: crop_box[2] = width - 1
-        # if crop_box[3] > height - 1: crop_box[3] = height - 1
-        # new_h = int(crop_box[3] - crop_box[1])
-        # new_w = int(crop_box[2] - crop_box[0])
-        # crop_box = [crop_box[0] + new_w // 2, crop_box[1] + new_h // 2, new_w, new_h]
-        # if new_h > new_w:
-        #     # bounds是为了防止以框的中心为原点，以max(new_h, new_w)为直径画框时超出图片的大小，超出的部分即为pad，通过补0完成
-        #     bounds = (crop_box[0] - new_h // 2, crop_box[0] + new_h // 2)
-        #     if bounds[0] < 0:
-        #         padding[1][0] = abs(bounds[0])
-        #     if bounds[1] > width - 1:
-        #         padding[1][1] = abs(width - bounds[1])
-        # elif new_h < new_w:
-        #     bounds = (crop_box[1] - new_w // 2, crop_box[1] + new_w // 2)
-        #     if bounds[0] < 0:
-        #         padding[0][0] = abs(bounds[0])
-        #     if bounds[1] > width - 1:
-        #         padding[0][1] = abs(height - bounds[1])
-        # # 将框的中心左边加上padding[1][0]是因为_crop_img函数不是以（0,0）点为原点，因为图片加了pad之后原点可能会变
-        # crop_box[0] += padding[1][0]
-        # crop_box[1] += padding[0][0]
+        j = np.copy(joints)
+        box[2], box[3] = max(j[:, 0]), max(j[:, 1])
+        width_max, height_max = max(j[:, 0]), max(j[:, 1])
+        j[joints == -1] = 1e5
+        box[0], box[1] = min(j[:, 0]), min(j[:, 1])
+        width_min, height_min = min(j[:, 0]), min(j[:, 1])
+        # print('box', box)
+        # crop_box (width_center,
+        width_len = width_max - width_min  # 记录宽的长度
+        heigth_len = height_max - height_min  # 记录高的长度
+        # 将框扩大boxp
+        width_min = width_min - int(boxp * width_len)
+        height_min = height_min - int(boxp * heigth_len)
+        width_max = width_max + int(boxp * width_len)
+        height_max = height_max + int(boxp * heigth_len)
+        # 处理扩大后框超过图片原始宽高的情况
+        if width_min < 0: width_min = 0
+        if height_min < 0: height_min = 0
+        if width_max > width - 1: width_max = width - 1
+        if height_max > height - 1: height_max = height - 1
+        new_h = int(height_max - height_min)
+        new_w = int(width_max - width_min)
+        crop_box = [width_min + new_w // 2, height_min + new_h // 2, new_w, new_h]
+        if new_h > new_w:
+            # bounds是为了防止以框的中心为原点，以max(new_h, new_w)为直径画框时超出图片的大小，超出的部分即为pad，通过补0完成
+            bounds = (crop_box[0] - new_h // 2, crop_box[0] + new_h // 2)
+            if bounds[0] < 0:
+                padding[1][0] = abs(bounds[0])
+            if bounds[1] > width - 1:
+                padding[1][1] = abs(width - bounds[1])
+        elif new_h < new_w:
+            bounds = (crop_box[1] - new_w // 2, crop_box[1] + new_w // 2)
+            if bounds[0] < 0:
+                padding[0][0] = abs(bounds[0])
+            if bounds[1] > width - 1:
+                padding[0][1] = abs(height - bounds[1])
+        # 将框的中心左边加上padding[1][0]是因为_crop_img函数不是以（0,0）点为原点，因为图片加了pad之后原点可能会变
+        crop_box[0] += padding[1][0]
+        crop_box[1] += padding[0][0]
         return padding, crop_box
 
     def _crop_img(self, img, padding, crop_box):
         """ Given a bounding box and padding values return cropped image
         Args:
             img			: Source Image
-            padding	    : Padding
-            crop_box	: Bounding Box
+            padding	    : Padding, come from the function _crop_data return padding
+            crop_box	: Bounding Box, come from the function _crop_data return crop_box
         """
         img = np.pad(img, padding, mode='constant')
         max_lenght = max(crop_box[2], crop_box[3])
+        # if max_lenght < 256:
+        #     max_lenght = 256
         img = img[crop_box[1] - max_lenght // 2:crop_box[1] + max_lenght // 2,
               crop_box[0] - max_lenght // 2:crop_box[0] + max_lenght // 2]
+        # print('crop img shape', img.shape)
+        # cv2.imwrite('ce.jpg', img)
+        # width = img[]
         return img
 
     def _crop(self, img, hm, padding, crop_box):
@@ -384,7 +410,7 @@ class DataGenClothes(object):
                         visible = self.data_dict[name]['visible']
                         if debug:
                             print(box)
-                        padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2)
+                        padd, cbox = self.F_crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2, iscrop=False)
                         if debug:
                             print(cbox)
                             print('maxl :', max(cbox[2], cbox[3]))
@@ -401,8 +427,8 @@ class DataGenClothes(object):
                         # error: (-215) ssize.area() > 0 in function cv::resize
                         # img = cv2.resize(img, (256,256), interpolation = cv2.INTER_CUBIC)
                         img, hm = self._augment(img, hm)
-                        hm = np.expand_dims(hm, axis=0)
-                        hm = np.repeat(hm, stacks, axis=0)
+                        hm = np.expand_dims(hm, axis=0)  # Dim is (1, 64, 64, 24)
+                        hm = np.repeat(hm, stacks, axis=0)  # Dim is (4, 64. 64. 24)
                         if normalize:
                             train_img[i] = img.astype(np.float32) / 255
                         else:
@@ -424,7 +450,7 @@ class DataGenClothes(object):
         while True:
             train_img = np.zeros((batch_size, 256, 256, 3), dtype=np.float32)
             train_gtmap = np.zeros((batch_size, stacks, 64, 64, len(self.joints_list)), np.float32)
-            train_weights = np.zeros((batch_size, len(self.joints_list)), np.float32)
+            train_weights = np.zeros((batch_size, len(self.joints_list)), np.float16)
             i = 0
             while i < batch_size:
                 if sample_set == 'train':
@@ -438,7 +464,7 @@ class DataGenClothes(object):
                 visible = self.data_dict[name]['visible']
                 train_weights[i] = weight
                 img = self.open_img(name)
-                padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2)
+                padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2, iscrop=False)
                 new_j = self._relative_joints(cbox, padd, joints, to_size=64)
                 hm = self._generate_hm(64, 64, new_j, 64, weight)
                 # TODO: save the heatmap
@@ -481,17 +507,18 @@ class DataGenClothes(object):
             name	: Name of the sample Images/blouse/155ee7793d159e227afb5f2e87ecf37b.jpg
             color	: Color Mode (RGB/BGR/GRAY)
         """
+        # print(os.path.join(self.img_dir, name))
         img = cv2.imread(os.path.join(self.img_dir, name))
+        if color == 'RGB':
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            return img
+        elif color == 'BGR':
+            return img
+        elif color == 'GRAY':
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        else:
+            print('Color mode supported: RGB/BGR. If you need another mode do it yourself :p')
         return img
-        # if color == 'RGB':
-        #     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        #     return img
-        # elif color == 'BGR':
-        #     return img
-        # elif color == 'GRAY':
-        #     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        # else:
-        #     print('Color mode supported: RGB/BGR. If you need another mode do it yourself :p')
 
     def plot_img(self, name, plot='cv2'):
         """ Plot an image
@@ -521,7 +548,7 @@ class DataGenClothes(object):
             img = self.open_img(self.train_set[i])
             w = self.data_dict[self.train_set[i]]['weights']
             padd, box = self._crop_data(img.shape[0], img.shape[1], self.data_dict[self.train_set[i]]['box'],
-                                        self.data_dict[self.train_set[i]]['joints'], boxp=0.0)
+                                        self.data_dict[self.train_set[i]]['joints'], boxp=0.0, iscrop=False)
             new_j = self._relative_joints(box, padd, self.data_dict[self.train_set[i]]['joints'], to_size=256)
             rhm = self._generate_hm(256, 256, new_j, 256, w)
             rimg = self._crop_img(img, padd, box)
@@ -583,7 +610,7 @@ class DataGenClothes(object):
                 category = self.data_dict[sample]['category']
                 visible = self.data_dict[sample]['visible']
                 img = self.open_img(sample)
-                padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2)
+                padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.1, iscrop=False)
                 new_j = self._relative_joints(cbox, padd, joints, to_size=256)
                 joint_full = np.copy(joints)
                 max_l = max(cbox[2], cbox[3])
@@ -605,19 +632,20 @@ if __name__ == '__main__':
     print('--Parsing Config File')
     params = process_config_clothes()
     print(params)
-    # dataset = DataGenClothes(params['joint_list'], params['img_directory'], params['training_txt_file'],
-    #                          params['category'])
-    dataset = DataGenClothes(params['joint_list'], params['img_directory'], 'train_1.csv',
+    dataset = DataGenClothes(params['joint_list'], params['img_directory'], params['training_txt_file'],
                              params['category'])
+    # dataset = DataGenClothes(params['joint_list'], params['img_directory'], 'train_1.csv',
+    #                          params['category'])
     dataset._create_train_table()
     dataset._randomize()
     dataset._create_sets()
-    img_name = "Images/blouse/00a2b0f3f13413cd87fa51bb4e25fdfd.jpg"
-    img_name_win = r"Images\blouse\00a20d1cb79af32d0d6a81af8acb2087.jpg"
+    img_name = "Images/skirt/00ef62ab642415f214abbc675f28d5e9.jpg"
+    img_name_win = r"Images\skirt\00ef62ab642415f214abbc675f28d5e9.jpg"
     img = dataset.open_img(img_name_win)
     print(img.shape)
     box = [-1, -1, -1, -1]
-    padd, cbox = dataset._crop_data(img.shape[0], img.shape[1], box, dataset.data_dict[img_name]['joints'], boxp=0.2)
+    padd, cbox = dataset._crop_data(img.shape[0], img.shape[1], box, dataset.data_dict[img_name]['joints'], boxp=0.1, iscrop=False)
+    dataset._crop_img(img, padd, cbox)
     # new_j = dataset._relative_joints(cbox, padd, dataset.joints, to_size=64)
     # hm = dataset._generate_hm(64, 64, new_j, 64, dataset.weight)
     # img = dataset._crop_img(img, padd, cbox)
@@ -633,5 +661,5 @@ if __name__ == '__main__':
     #     i += 1
     #     print("...")
     #     if i == 1: break
-    # # padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2)
+    # # padd, cbox = self._crop_data(img.shape[0], img.shape[1], box, joints, boxp=0.2, iscrop=False)
     print("end")

@@ -344,8 +344,10 @@ class PredictClothes():
         """
         img_copy = np.copy(img)
         for i in range(0, len(joints), 2):
-            cv2.circle(img, (joints[i], joints[i + 1]), 3, self.color[i // 2], 1)
+            cv2.circle(img, (joints[i], joints[i + 1]), 2, self.color[i // 2], 1)
             cv2.putText(img, str(i // 2) + joints_name[i // 2], (joints[i], joints[i + 1]), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.3, self.color[i // 2], 1)
+            cv2.putText(img, str(i // 2) + joints_name[i // 2], (10, 10 + i * 5), cv2.FONT_HERSHEY_SIMPLEX,
                         0.3, self.color[i // 2], 1)
         return img
 
