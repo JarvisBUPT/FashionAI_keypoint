@@ -341,7 +341,7 @@ l           logdir_train       : Directory to Train Log file
         record_path = os.path.join(self.logdir_train, 'record', self.name)
         if not os.path.exists(record_path):
             os.makedirs(record_path)
-        out_file = open(os.path.join(record_path, self.name + '_train_record.csv'), 'w')
+        out_file = open(os.path.join(record_path, self.name + '_train_record.csv'), 'a', newline='')
         for line in range(len(record['accur'])):
             out_string = ''
             labels = [record['loss'][line]] + [record['err'][line]] + record['accur'][line]
@@ -987,7 +987,8 @@ l           logdir_train       : Directory to Train Log file
         with tf.name_scope('stacks'):
             for i in range(self.nStack):
                 with tf.name_scope('houglass_' + str(i + 1)):
-                    hg = self._hg_mcam(inter[i], self.nLow, self.nFeat, 64, nModual)  # this end hg shape is (N, 64, 64, 256)
+                    hg = self._hg_mcam(inter[i], self.nLow, self.nFeat, 64,
+                                       nModual)  # this end hg shape is (N, 64, 64, 256)
 
                 if i == self.nStack - 1:
                     ll1 = self._lin(hg, self.nFeat * 2)
